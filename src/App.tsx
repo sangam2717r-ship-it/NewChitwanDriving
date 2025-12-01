@@ -78,27 +78,25 @@ try {
   auth = getAuth(app);
   try {
     auth.useDeviceLanguage();
-  } catch (e) {}
+  } catch (e: any) {} // FIX: Added : any
   db = getFirestore(app);
 } catch (err: any) {
-  // Type 'any' used here to resolve TS2571
+  // FIX: Added : any
   console.error("Firebase Init Error:", err);
   firebaseError = err.message;
 }
 
 const appId = "new-chitwan-v1";
-// --- THE REST OF THE APPLICATION CODE CONTINUES BELOW ---
-// ... (The rest of the App.tsx file content is assumed to be below this line) ...
 
 // --- SECURITY HOOK ---
 const useCopyProtection = (active = true) => {
   useEffect(() => {
-    if (!active) return;
-    const preventContext = (e) => {
+    // FIX: Added : any to function parameters to resolve TS7006 errors
+    const preventContext = (e: any) => {
       e.preventDefault();
       return false;
     };
-    const preventKeys = (e) => {
+    const preventKeys = (e: any) => {
       if (
         (e.ctrlKey || e.metaKey) &&
         ["c", "s", "p", "u", "a"].includes(e.key.toLowerCase())
@@ -107,19 +105,24 @@ const useCopyProtection = (active = true) => {
       }
       if (e.key === "F12") e.preventDefault();
     };
+    const preventDrag = (e: any) => e.preventDefault();
+
+    if (!active) return;
+
     document.addEventListener("contextmenu", preventContext);
     document.addEventListener("keydown", preventKeys);
-    document.addEventListener("dragstart", (e) => e.preventDefault());
+    document.addEventListener("dragstart", preventDrag);
+
     return () => {
       document.removeEventListener("contextmenu", preventContext);
       document.removeEventListener("keydown", preventKeys);
-      document.removeEventListener("dragstart", (e) => e.preventDefault());
+      document.removeEventListener("dragstart", preventDrag);
     };
   }, [active]);
 };
 
 // --- UTILITIES ---
-const useStickyState = (defaultValue, key) => {
+const useStickyState = (defaultValue: any, key: string) => {
   const [value, setValue] = useState(() => {
     try {
       const stickyValue = window.localStorage.getItem(key);
@@ -134,7 +137,7 @@ const useStickyState = (defaultValue, key) => {
   return [value, setValue];
 };
 
-const formatPrice = (price) =>
+const formatPrice = (price: number) =>
   new Intl.NumberFormat("en-NP", {
     style: "currency",
     currency: "NPR",
@@ -143,7 +146,7 @@ const formatPrice = (price) =>
 
 // --- COMPONENTS ---
 
-const Navbar = ({ setView, activeView }) => {
+const Navbar = ({ setView, activeView }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const navItems = [
     { id: "home", label: "Home" },
@@ -242,7 +245,7 @@ const Navbar = ({ setView, activeView }) => {
   );
 };
 
-const BookingView = ({ onAddBooking, rates }) => {
+const BookingView = ({ onAddBooking, rates }: any) => {
   const [tab, setTab] = useState("new");
 
   const [duration, setDuration] = useState("15 Days");
@@ -460,7 +463,7 @@ const BookingView = ({ onAddBooking, rates }) => {
               placeholder="Enter Phone Number"
               className="flex-grow p-3 border rounded"
               value={checkPhone}
-              onChange={(e) => setCheckPhone(e.target.value)}
+              onChange={(e: any) => setCheckPhone(e.target.value)}
             />
             <button
               onClick={handleCheckProgress}
@@ -655,7 +658,7 @@ const BookingView = ({ onAddBooking, rates }) => {
                     <select
                       className="w-full p-3 border border-slate-300 rounded bg-white"
                       value={instructor}
-                      onChange={(e) => setInstructor(e.target.value)}
+                      onChange={(e: any) => setInstructor(e.target.value)}
                     >
                       <option>Prem Bahadur Gaire</option>
                       <option>Other / Any Available</option>
@@ -669,7 +672,7 @@ const BookingView = ({ onAddBooking, rates }) => {
                       type="text"
                       className="w-full p-3 border border-slate-300 rounded outline-none focus:border-red-500"
                       value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
+                      onChange={(e: any) => setClientName(e.target.value)}
                     />
                   </div>
                   <div>
@@ -680,7 +683,7 @@ const BookingView = ({ onAddBooking, rates }) => {
                       type="tel"
                       className="w-full p-3 border border-slate-300 rounded outline-none focus:border-red-500"
                       value={clientPhone}
-                      onChange={(e) => setClientPhone(e.target.value)}
+                      onChange={(e: any) => setClientPhone(e.target.value)}
                       placeholder="+977 98..."
                     />
                   </div>
@@ -723,7 +726,7 @@ const BookingView = ({ onAddBooking, rates }) => {
                   placeholder="123456"
                   className="w-full p-4 border-2 border-slate-300 rounded-lg text-center text-2xl tracking-widest outline-none focus:border-red-500 mb-4"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
+                  onChange={(e: any) => setOtp(e.target.value)}
                   autoFocus
                 />
                 {error && (
@@ -755,7 +758,7 @@ const BookingView = ({ onAddBooking, rates }) => {
 
 // --- PAGES ---
 
-const HomePage = ({ setView }) => (
+const HomePage = ({ setView }: any) => (
   <div className="animate-fade-in">
     <div className="relative h-80 md:h-96 bg-slate-900 overflow-hidden flex items-center justify-center text-center px-4 select-none">
       <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-slate-900/60 z-10"></div>
@@ -853,7 +856,7 @@ const AboutPage = () => (
         <div className="h-80 bg-slate-200 relative">
           <img
             src="./dad.png"
-            onError={(e) => {
+            onError={(e: any) => {
               e.target.style.display = "none";
               e.target.nextSibling.style.display = "flex";
             }}
@@ -883,7 +886,7 @@ const AboutPage = () => (
         <div className="h-80 bg-slate-200 relative">
           <img
             src="./mom.png"
-            onError={(e) => {
+            onError={(e: any) => {
               e.target.style.display = "none";
               e.target.nextSibling.style.display = "flex";
             }}
@@ -977,10 +980,10 @@ const AdminPanel = ({
   onExit,
   rates,
   setRates,
-}) => {
+}: any) => {
   const [adminTab, setAdminTab] = useState("pending");
-  const [bookings, setBookings] = useState([]);
-  const [editingBooking, setEditingBooking] = useState(null);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [editingBooking, setEditingBooking] = useState<any>(null);
 
   const [pName, setPName] = useState("");
   const [pPhone, setPPhone] = useState("");
@@ -990,7 +993,6 @@ const AdminPanel = ({
   const [pNotes, setPNotes] = useState("");
   const [tempRates, setTempRates] = useState(rates);
 
-  // Security Settings Temporary State
   const [tempQuestion, setTempQuestion] = useState(securitySettings.question);
   const [tempAnswer, setTempAnswer] = useState(securitySettings.answer);
   const [securityMessage, setSecurityMessage] = useState("");
@@ -1034,7 +1036,7 @@ const AdminPanel = ({
     setAdminTab("active");
   };
 
-  const updateProgress = async (booking, increment) => {
+  const updateProgress = async (booking: any, increment: number) => {
     const newProgress = (booking.progress || 0) + increment;
     if (newProgress < 0) return;
     await updateDoc(
@@ -1043,14 +1045,14 @@ const AdminPanel = ({
     );
   };
 
-  const deleteBooking = async (id) => {
+  const deleteBooking = async (id: string) => {
     if (confirm("Delete this?"))
       await deleteDoc(
         doc(db, "artifacts", appId, "public", "data", "bookings", id)
       );
   };
 
-  const sendConfirmation = (booking) => {
+  const sendConfirmation = (booking: any) => {
     const msg = `Namaste ${
       booking.clientName
     },\n\nYour driving course is confirmed!\n\n*Package:* ${
@@ -1142,7 +1144,7 @@ const AdminPanel = ({
                 <input
                   className="w-full p-2 border rounded"
                   value={editingBooking.clientName}
-                  onChange={(e) =>
+                  onChange={(e: any) =>
                     setEditingBooking({
                       ...editingBooking,
                       clientName: e.target.value,
@@ -1157,7 +1159,7 @@ const AdminPanel = ({
                 <input
                   className="w-full p-2 border rounded"
                   value={editingBooking.clientPhone}
-                  onChange={(e) =>
+                  onChange={(e: any) =>
                     setEditingBooking({
                       ...editingBooking,
                       clientPhone: e.target.value,
@@ -1173,7 +1175,7 @@ const AdminPanel = ({
                   type="number"
                   className="w-full p-2 border rounded font-bold text-red-600"
                   value={editingBooking.finalPrice}
-                  onChange={(e) =>
+                  onChange={(e: any) =>
                     setEditingBooking({
                       ...editingBooking,
                       finalPrice: e.target.value,
@@ -1188,7 +1190,7 @@ const AdminPanel = ({
                 <input
                   className="w-full p-2 border rounded"
                   value={editingBooking.newDate}
-                  onChange={(e) =>
+                  onChange={(e: any) =>
                     setEditingBooking({
                       ...editingBooking,
                       newDate: e.target.value,
@@ -1429,7 +1431,7 @@ const AdminPanel = ({
               <div className="grid grid-cols-2 gap-2">
                 <select
                   value={pDuration}
-                  onChange={(e) => setPDuration(e.target.value)}
+                  onChange={(e: any) => setPDuration(e.target.value)}
                   className="p-2 border rounded"
                 >
                   <option>1 Day</option>
@@ -1438,7 +1440,7 @@ const AdminPanel = ({
                 </select>
                 <select
                   value={pDaily}
-                  onChange={(e) => setPDaily(e.target.value)}
+                  onChange={(e: any) => setPDaily(e.target.value)}
                   className="p-2 border rounded"
                 >
                   <option>30 Mins</option>
@@ -1450,27 +1452,27 @@ const AdminPanel = ({
                 placeholder="Name"
                 className="w-full p-2 border rounded"
                 value={pName}
-                onChange={(e) => setPName(e.target.value)}
+                onChange={(e: any) => setPName(e.target.value)}
               />
               <input
                 type="text"
                 placeholder="Phone"
                 className="w-full p-2 border rounded"
                 value={pPhone}
-                onChange={(e) => setPPhone(e.target.value)}
+                onChange={(e: any) => setPPhone(e.target.value)}
               />
               <input
                 type="text"
                 placeholder="Date & Time"
                 className="w-full p-2 border rounded"
                 value={pDate}
-                onChange={(e) => setPDate(e.target.value)}
+                onChange={(e: any) => setPDate(e.target.value)}
               />
               <textarea
                 placeholder="Notes (e.g. Family Discount, Cash Paid)"
                 className="w-full p-2 border rounded"
                 value={pNotes}
-                onChange={(e) => setPNotes(e.target.value)}
+                onChange={(e: any) => setPNotes(e.target.value)}
               />
               <button
                 onClick={handleAddPrivate}
@@ -1495,7 +1497,7 @@ const AdminPanel = ({
                 <input
                   type="text"
                   value={securitySettings.pin}
-                  onChange={(e) => updateSecurity("pin", e.target.value)}
+                  onChange={(e: any) => updateSecurity("pin", e.target.value)}
                   className="w-full p-3 border rounded font-mono text-center tracking-widest text-lg"
                 />
               </div>
@@ -1513,7 +1515,7 @@ const AdminPanel = ({
                 <input
                   type="text"
                   value={tempQuestion}
-                  onChange={(e) => setTempQuestion(e.target.value)}
+                  onChange={(e: any) => setTempQuestion(e.target.value)}
                   className="w-full p-3 border rounded mb-3"
                 />
 
@@ -1523,7 +1525,7 @@ const AdminPanel = ({
                 <input
                   type="text"
                   value={tempAnswer}
-                  onChange={(e) => setTempAnswer(e.target.value)}
+                  onChange={(e: any) => setTempAnswer(e.target.value)}
                   className="w-full p-3 border rounded mb-4"
                 />
 
@@ -1552,7 +1554,7 @@ const AdminPanel = ({
                     <input
                       type="number"
                       value={tempRates["1 Day"]}
-                      onChange={(e) =>
+                      onChange={(e: any) =>
                         setTempRates({
                           ...tempRates,
                           "1 Day": Number(e.target.value),
@@ -1566,7 +1568,7 @@ const AdminPanel = ({
                     <input
                       type="number"
                       value={tempRates["15 Days"]}
-                      onChange={(e) =>
+                      onChange={(e: any) =>
                         setTempRates({
                           ...tempRates,
                           "15 Days": Number(e.target.value),
@@ -1580,7 +1582,7 @@ const AdminPanel = ({
                     <input
                       type="number"
                       value={tempRates["15 Days (30m)"]}
-                      onChange={(e) =>
+                      onChange={(e: any) =>
                         setTempRates({
                           ...tempRates,
                           "15 Days (30m)": Number(e.target.value),
@@ -1594,7 +1596,7 @@ const AdminPanel = ({
                     <input
                       type="number"
                       value={tempRates["30 Days"]}
-                      onChange={(e) =>
+                      onChange={(e: any) =>
                         setTempRates({
                           ...tempRates,
                           "30 Days": Number(e.target.value),
@@ -1608,7 +1610,7 @@ const AdminPanel = ({
                     <input
                       type="number"
                       value={tempRates["30 Days (30m)"]}
-                      onChange={(e) =>
+                      onChange={(e: any) =>
                         setTempRates({
                           ...tempRates,
                           "30 Days (30m)": Number(e.target.value),
@@ -1669,7 +1671,7 @@ export default function App() {
     "ncdc_rates_v2"
   );
 
-  const handleLogin = (e) => {
+  const handleLogin = (e: any) => {
     e.preventDefault();
     if (loginInput === securitySettings.pin) {
       setView("admin");
@@ -1681,7 +1683,7 @@ export default function App() {
   };
 
   // Updated Recovery Logic
-  const handleRecover = (e) => {
+  const handleRecover = (e: any) => {
     e.preventDefault();
     if (recoveryStep === "question") {
       // Step 1: Verify Answer
@@ -1711,11 +1713,11 @@ export default function App() {
     }
   };
 
-  const updateSecurity = (field, value) => {
+  const updateSecurity = (field: string, value: string) => {
     setSecuritySettings((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAddBooking = async (data) => {
+  const handleAddBooking = async (data: any) => {
     try {
       if (data.type === "public") {
         // Simple conflict check
@@ -1726,7 +1728,7 @@ export default function App() {
           { ...data, createdAt: serverTimestamp() }
         );
       else alert("Database not ready");
-    } catch (e) {
+    } catch (e: any) {
       alert("Error saving: " + e.message);
     }
   };
@@ -1773,7 +1775,7 @@ export default function App() {
                 <input
                   type="password"
                   value={loginInput}
-                  onChange={(e) => setLoginInput(e.target.value)}
+                  onChange={(e: any) => setLoginInput(e.target.value)}
                   placeholder="Enter PIN"
                   className="w-full p-3 border rounded-lg text-center tracking-widest text-lg outline-none focus:border-red-500 mb-4"
                   autoFocus
@@ -1823,7 +1825,7 @@ export default function App() {
                       type="text"
                       placeholder="Your Answer"
                       value={recoveryAnswer}
-                      onChange={(e) => setRecoveryAnswer(e.target.value)}
+                      onChange={(e: any) => setRecoveryAnswer(e.target.value)}
                       className="w-full p-3 border rounded mb-4 outline-none focus:border-red-500"
                     />
                   </>
@@ -1836,7 +1838,7 @@ export default function App() {
                       type="text"
                       placeholder="New PIN"
                       value={newPin}
-                      onChange={(e) => setNewPin(e.target.value)}
+                      onChange={(e: any) => setNewPin(e.target.value)}
                       className="w-full p-3 border rounded mb-4 outline-none focus:border-red-500 text-center tracking-widest text-xl"
                       autoFocus
                     />
