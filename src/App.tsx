@@ -25,9 +25,15 @@ import {
   CheckCircle,
   AlertTriangle,
   Plus,
+  Minus,
   Smartphone,
   AlertOctagon,
   Map,
+  Key,
+  Mail,
+  Save,
+  XCircle,
+  Search,
 } from "lucide-react";
 import { initializeApp } from "firebase/app";
 import {
@@ -47,6 +53,8 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  where,
+  getDocs,
 } from "firebase/firestore";
 
 // --- CONFIGURATION ---
@@ -77,18 +85,14 @@ try {
 
 const appId = "new-chitwan-v1";
 
-// --- SECURITY HOOK (ANTI-COPY) ---
+// --- SECURITY HOOK ---
 const useCopyProtection = (active = true) => {
   useEffect(() => {
     if (!active) return;
-
-    // 1. Disable Right Click
     const preventContext = (e) => {
       e.preventDefault();
       return false;
     };
-
-    // 2. Disable Keyboard Shortcuts (Ctrl+C, Ctrl+U, F12, etc)
     const preventKeys = (e) => {
       if (
         (e.ctrlKey || e.metaKey) &&
@@ -98,11 +102,9 @@ const useCopyProtection = (active = true) => {
       }
       if (e.key === "F12") e.preventDefault();
     };
-
     document.addEventListener("contextmenu", preventContext);
     document.addEventListener("keydown", preventKeys);
     document.addEventListener("dragstart", (e) => e.preventDefault());
-
     return () => {
       document.removeEventListener("contextmenu", preventContext);
       document.removeEventListener("keydown", preventKeys);
@@ -235,19 +237,56 @@ const Navbar = ({ setView, activeView }) => {
   );
 };
 
-const BookingView = ({ packages, onAddBooking }) => {
-  const [selectedPackage, setSelectedPackage] = useState(null);
+const BookingView = ({ onAddBooking, rates }) => {
+  const [tab, setTab] = useState("new");
+
+  const [duration, setDuration] = useState("15 Days");
+  const [dailyTime, setDailyTime] = useState("60 Mins");
+  const [currentPrice, setCurrentPrice] = useState(rates["15 Days"]);
+
   const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("+977 ");
   const [instructor, setInstructor] = useState("Prem Bahadur Gaire");
 
-  const [step, setStep] = useState("form");
+  const [step, setStep] = useState("customize");
   const [otp, setOtp] = useState("");
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [simulationMode, setSimulationMode] = useState(false);
+
+  const [checkPhone, setCheckPhone] = useState("");
+  const [myBooking, setMyBooking] = useState(null);
+  const [checkError, setCheckError] = useState("");
+
+  const timeSlots = [
+    "7:00 AM",
+    "8:00 AM",
+    "9:00 AM",
+    "10:00 AM",
+    "11:00 AM",
+    "12:00 PM",
+    "1:00 PM",
+    "2:00 PM",
+    "3:00 PM",
+    "4:00 PM",
+    "5:00 PM",
+    "6:00 PM",
+  ];
+
+  useEffect(() => {
+    let base = 0;
+    if (duration === "1 Day") base = rates["1 Day"];
+    else if (duration === "15 Days")
+      base =
+        dailyTime === "60 Mins" ? rates["15 Days"] : rates["15 Days (30m)"];
+    else if (duration === "30 Days")
+      base =
+        dailyTime === "60 Mins" ? rates["30 Days"] : rates["30 Days (30m)"];
+    setCurrentPrice(base);
+  }, [duration, dailyTime, rates]);
 
   useEffect(() => {
     if (!auth) return;
@@ -263,7 +302,7 @@ const BookingView = ({ packages, onAddBooking }) => {
         );
       }
     } catch (e) {
-      console.log("Recaptcha error:", e);
+      console.log("Recaptcha init:", e);
     }
   }, []);
 
@@ -286,12 +325,12 @@ const BookingView = ({ packages, onAddBooking }) => {
       setStep("otp");
       setLoading(false);
     } catch (err) {
-      console.warn("SMS Failed (preview block). Using Sim.");
+      console.warn("SMS Failed. Using Sim.");
       setSimulationMode(true);
       setStep("otp");
       setLoading(false);
       alert(
-        "Note: Preview Window detected. Real SMS blocked by browser. \n\nSIMULATION MODE ACTIVE.\nUse code: 123456"
+        "SIMULATION MODE (Real SMS blocked in Preview).\n\nUse code: 123456"
       );
     }
   };
@@ -299,20 +338,24 @@ const BookingView = ({ packages, onAddBooking }) => {
   const verifyOtpAndBook = async () => {
     if (!otp) return;
     setLoading(true);
-
     try {
       if (simulationMode) {
         if (otp !== "123456") throw new Error("Wrong code");
       } else {
         await confirmationResult.confirm(otp);
       }
-
+      const pkgName =
+        duration === "1 Day"
+          ? "Trial Preparation (1 Day)"
+          : `${duration} Course (${dailyTime}/day)`;
       await onAddBooking({
         clientName,
         clientPhone,
-        packageName: selectedPackage.name,
-        date: selectedDate,
-        price: selectedPackage.price,
+        packageName: pkgName,
+        duration,
+        dailyTime,
+        date: `${selectedDate} at ${selectedTime}`,
+        price: currentPrice,
         instructor,
         type: "public",
         status: "pending",
@@ -323,6 +366,26 @@ const BookingView = ({ packages, onAddBooking }) => {
     } catch (err) {
       setLoading(false);
       setError("Incorrect Code. Try 123456.");
+    }
+  };
+
+  const handleCheckProgress = async () => {
+    setCheckError("");
+    setMyBooking(null);
+    if (!checkPhone) return;
+
+    const q = query(
+      collection(db, "artifacts", appId, "public", "data", "bookings"),
+      where("clientPhone", "==", checkPhone),
+      where("status", "==", "approved")
+    );
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      setCheckError("No active booking found for this number.");
+    } else {
+      const data = snapshot.docs[0].data();
+      setMyBooking(data);
     }
   };
 
@@ -342,9 +405,10 @@ const BookingView = ({ packages, onAddBooking }) => {
           </p>
           <button
             onClick={() => {
-              setStep("form");
-              setSelectedPackage(null);
+              setStep("customize");
+              setDuration("15 Days");
               setSelectedDate(null);
+              setSelectedTime(null);
             }}
             className="px-6 py-3 bg-slate-900 text-white rounded-lg font-bold"
           >
@@ -356,169 +420,330 @@ const BookingView = ({ packages, onAddBooking }) => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-xl overflow-hidden flex flex-col md:flex-row min-h-[550px] border border-slate-100 animate-fade-in">
-      <div id="recaptcha-container"></div>
-
-      <div className="md:w-1/2 p-6 bg-slate-50/50 border-r border-slate-100">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">
-          Select Course
-        </h2>
-        <div className="space-y-3 mt-4">
-          {packages.map((pkg) => (
-            <button
-              key={pkg.id}
-              onClick={() => {
-                setSelectedPackage(pkg);
-                setSelectedDate(null);
-              }}
-              className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                selectedPackage?.id === pkg.id
-                  ? "border-red-600 bg-white shadow-md"
-                  : "border-white bg-white hover:border-red-100"
-              }`}
-            >
-              <div className="flex justify-between font-bold text-slate-800">
-                <span>{pkg.name}</span>
-                <span className="text-red-600">{formatPrice(pkg.price)}</span>
-              </div>
-              <p className="text-sm text-slate-500 mt-1">{pkg.description}</p>
-            </button>
-          ))}
-        </div>
+    <div className="bg-white rounded-xl shadow-xl overflow-hidden flex flex-col min-h-[550px] border border-slate-100 animate-fade-in">
+      <div className="flex border-b">
+        <button
+          onClick={() => setTab("new")}
+          className={`flex-1 p-4 text-center font-bold ${
+            tab === "new"
+              ? "bg-slate-50 text-red-600 border-b-2 border-red-600"
+              : "text-slate-500 hover:bg-slate-50"
+          }`}
+        >
+          New Booking
+        </button>
+        <button
+          onClick={() => setTab("check")}
+          className={`flex-1 p-4 text-center font-bold ${
+            tab === "check"
+              ? "bg-slate-50 text-red-600 border-b-2 border-red-600"
+              : "text-slate-500 hover:bg-slate-50"
+          }`}
+        >
+          Check Progress
+        </button>
       </div>
 
-      <div className="md:w-1/2 p-6 bg-white">
-        {!selectedPackage ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400">
-            <Car className="w-12 h-12 opacity-20 mb-2" />
-            <p>Select a course to begin</p>
-          </div>
-        ) : !selectedDate ? (
-          <div className="animate-fade-in">
-            <h3 className="font-bold text-lg mb-4">Preferred Time</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {["6:00 AM", "7:00 AM", "8:00 AM", "4:00 PM", "5:00 PM"].map(
-                (t) => (
-                  <button
-                    key={t}
-                    onClick={() => setSelectedDate(t)}
-                    className="p-3 border rounded hover:border-red-500 hover:bg-red-50 text-sm font-medium"
-                  >
-                    Tomorrow • {t}
-                  </button>
-                )
-              )}
-            </div>
+      {tab === "check" && (
+        <div className="p-8 flex flex-col items-center justify-center h-full">
+          <h3 className="text-xl font-bold mb-4 text-slate-800">
+            Student Progress Check
+          </h3>
+          <div className="flex gap-2 w-full max-w-md mb-6">
+            <input
+              type="tel"
+              placeholder="Enter Phone Number"
+              className="flex-grow p-3 border rounded"
+              value={checkPhone}
+              onChange={(e) => setCheckPhone(e.target.value)}
+            />
             <button
-              onClick={() => setSelectedPackage(null)}
-              className="mt-4 text-sm text-slate-400 underline"
+              onClick={handleCheckProgress}
+              className="bg-slate-900 text-white px-6 rounded font-bold"
             >
-              Back
+              <Search className="w-5 h-5" />
             </button>
           </div>
-        ) : step === "form" ? (
-          <div className="animate-fade-in h-full flex flex-col">
-            <h3 className="font-bold text-lg mb-4">Verification</h3>
-            <div className="bg-yellow-50 p-3 rounded mb-4 text-sm border border-yellow-100 text-yellow-800">
-              <p>We will send an SMS code to verify your booking.</p>
-            </div>
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase">
-                  Instructor
-                </label>
-                <select
-                  className="w-full p-3 border border-slate-300 rounded bg-white"
-                  value={instructor}
-                  onChange={(e) => setInstructor(e.target.value)}
-                >
-                  <option>Prem Bahadur Gaire</option>
-                  <option>Other / Any Available</option>
-                </select>
+          {checkError && <p className="text-red-500 mb-4">{checkError}</p>}
+
+          {myBooking && (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 w-full max-w-md">
+              <h4 className="font-bold text-lg text-slate-800 mb-1">
+                {myBooking.clientName}
+              </h4>
+              <p className="text-slate-500 text-sm mb-4">
+                {myBooking.packageName}
+              </p>
+
+              <div className="mb-2 flex justify-between text-xs font-bold uppercase text-slate-400">
+                <span>Progress</span>
+                <span>
+                  Day {myBooking.progress || 0} /{" "}
+                  {myBooking.packageName.includes("30") ? 30 : 15}
+                </span>
               </div>
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase">
-                  Your Name
+              <div className="h-4 bg-slate-200 rounded-full overflow-hidden mb-4">
+                <div
+                  className="h-full bg-green-500 transition-all"
+                  style={{
+                    width: `${
+                      ((myBooking.progress || 0) /
+                        (myBooking.packageName.includes("30") ? 30 : 15)) *
+                      100
+                    }%`,
+                  }}
+                ></div>
+              </div>
+              <div className="text-center p-3 bg-white rounded border border-slate-200 text-sm">
+                Next Class:{" "}
+                <span className="font-bold text-slate-800">
+                  {myBooking.date}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "new" && (
+        <div className="flex flex-col md:flex-row flex-grow">
+          <div id="recaptcha-container"></div>
+          <div className="md:w-1/2 p-6 bg-slate-50/50 border-r border-slate-100 flex flex-col">
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">
+              Build Your Course
+            </h2>
+            <p className="text-slate-500 mb-6 text-sm">
+              Select the duration and daily time.
+            </p>
+            <div className="mb-6">
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                Course Duration
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {["1 Day", "15 Days", "30 Days"].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDuration(d)}
+                    className={`p-3 rounded-lg text-sm font-bold transition-all ${
+                      duration === d
+                        ? "bg-red-600 text-white shadow-md"
+                        : "bg-white border border-slate-200 text-slate-600 hover:border-red-300"
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {duration !== "1 Day" && (
+              <div className="mb-6 animate-fade-in">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                  Daily Session Length
                 </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {["30 Mins", "60 Mins"].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setDailyTime(t)}
+                      className={`p-3 rounded-lg text-sm font-bold transition-all ${
+                        dailyTime === t
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "bg-white border border-slate-200 text-slate-600 hover:border-blue-300"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="mt-auto pt-6 border-t border-slate-200">
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-xs text-slate-500 uppercase font-bold">
+                    Estimated Total
+                  </p>
+                  <p className="text-3xl font-black text-slate-800">
+                    {formatPrice(currentPrice)}
+                  </p>
+                </div>
+                {step === "customize" && (
+                  <button
+                    onClick={() => setStep("date")}
+                    className="px-6 py-3 bg-slate-900 text-white rounded-lg font-bold hover:bg-slate-800 flex items-center gap-2"
+                  >
+                    Next <ChevronRight className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="md:w-1/2 p-6 bg-white">
+            {step === "customize" && (
+              <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <Settings className="w-8 h-8 opacity-20" />
+                </div>
+                <p>
+                  Configure your course on the left
+                  <br />
+                  to proceed.
+                </p>
+              </div>
+            )}
+            {step === "date" && (
+              <div className="animate-fade-in">
+                <h3 className="font-bold text-lg mb-4">
+                  {duration === "1 Day" ? "Appointment Date" : "Start Date"}
+                </h3>
+                <div className="grid grid-cols-2 gap-2 mb-6">
+                  {["Tomorrow", "Day After Tomorrow"].map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setSelectedDate(d)}
+                      className={`p-3 border rounded text-sm font-medium transition-colors ${
+                        selectedDate === d
+                          ? "border-red-500 bg-red-50 text-red-700"
+                          : "hover:bg-slate-50"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+                {selectedDate && (
+                  <div className="animate-fade-in">
+                    <h3 className="font-bold text-lg mb-4">Preferred Time</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {timeSlots.map((t) => (
+                        <button
+                          key={t}
+                          onClick={() => {
+                            setSelectedTime(t);
+                            setStep("form");
+                          }}
+                          className="p-2 border rounded hover:border-red-500 hover:bg-red-50 text-xs font-bold transition-colors"
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={() => setStep("customize")}
+                  className="mt-6 text-sm text-slate-400 underline"
+                >
+                  Back
+                </button>
+              </div>
+            )}
+            {step === "form" && (
+              <div className="animate-fade-in h-full flex flex-col">
+                <h3 className="font-bold text-lg mb-4">Verification</h3>
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">
+                      Instructor
+                    </label>
+                    <select
+                      className="w-full p-3 border border-slate-300 rounded bg-white"
+                      value={instructor}
+                      onChange={(e) => setInstructor(e.target.value)}
+                    >
+                      <option>Prem Bahadur Gaire</option>
+                      <option>Other / Any Available</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">
+                      Your Name
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-3 border border-slate-300 rounded outline-none focus:border-red-500"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">
+                      Mobile Number
+                    </label>
+                    <input
+                      type="tel"
+                      className="w-full p-3 border border-slate-300 rounded outline-none focus:border-red-500"
+                      value={clientPhone}
+                      onChange={(e) => setClientPhone(e.target.value)}
+                      placeholder="+977 98..."
+                    />
+                  </div>
+                </div>
+                {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+                <button
+                  onClick={requestOtp}
+                  disabled={loading}
+                  className="w-full bg-slate-900 text-white py-4 rounded-lg font-bold hover:bg-slate-800 mt-auto shadow-lg flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    "Sending SMS..."
+                  ) : (
+                    <>
+                      <Smartphone className="w-4 h-4" /> Verify & Submit
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setStep("date")}
+                  className="mt-3 text-center text-sm text-slate-400 underline"
+                >
+                  Change Time
+                </button>
+              </div>
+            )}
+            {step === "otp" && (
+              <div className="animate-fade-in h-full flex flex-col">
+                <h3 className="font-bold text-lg mb-4">Enter Code</h3>
+                <p className="text-sm text-slate-500 mb-4">
+                  Code sent to {clientPhone}
+                </p>
+                {simulationMode && (
+                  <p className="text-xs text-orange-600 bg-orange-100 p-2 rounded mb-2">
+                    Sim Mode: Enter 123456
+                  </p>
+                )}
                 <input
                   type="text"
-                  className="w-full p-3 border border-slate-300 rounded outline-none focus:border-red-500"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="123456"
+                  className="w-full p-4 border-2 border-slate-300 rounded-lg text-center text-2xl tracking-widest outline-none focus:border-red-500 mb-4"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  autoFocus
                 />
+                {error && (
+                  <p className="text-red-500 text-sm mb-3 text-center">
+                    {error}
+                  </p>
+                )}
+                <button
+                  onClick={verifyOtpAndBook}
+                  disabled={loading}
+                  className="w-full bg-red-600 text-white py-4 rounded-lg font-bold hover:bg-red-700 shadow-lg"
+                >
+                  {loading ? "Verifying..." : "Confirm Booking"}
+                </button>
+                <button
+                  onClick={() => setStep("form")}
+                  className="mt-4 text-center text-sm text-slate-400 underline"
+                >
+                  Wrong Number?
+                </button>
               </div>
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase">
-                  Mobile Number
-                </label>
-                <input
-                  type="tel"
-                  className="w-full p-3 border border-slate-300 rounded outline-none focus:border-red-500"
-                  value={clientPhone}
-                  onChange={(e) => setClientPhone(e.target.value)}
-                  placeholder="+977 98..."
-                />
-              </div>
-            </div>
-            {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
-            <button
-              onClick={requestOtp}
-              disabled={loading}
-              className="w-full bg-slate-900 text-white py-4 rounded-lg font-bold hover:bg-slate-800 mt-auto shadow-lg flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                "Sending SMS..."
-              ) : (
-                <>
-                  <Smartphone className="w-4 h-4" /> Verify & Submit
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => setSelectedDate(null)}
-              className="mt-3 text-center text-sm text-slate-400 underline"
-            >
-              Change Time
-            </button>
-          </div>
-        ) : (
-          <div className="animate-fade-in h-full flex flex-col">
-            <h3 className="font-bold text-lg mb-4">Enter Code</h3>
-            <p className="text-sm text-slate-500 mb-4">
-              We sent a code to {clientPhone}
-            </p>
-            {simulationMode && (
-              <p className="text-xs text-orange-600 bg-orange-100 p-2 rounded mb-2">
-                Sim Mode: Enter 123456
-              </p>
             )}
-            <input
-              type="text"
-              placeholder="123456"
-              className="w-full p-4 border-2 border-slate-300 rounded-lg text-center text-2xl tracking-widest outline-none focus:border-red-500 mb-4"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              autoFocus
-            />
-            {error && (
-              <p className="text-red-500 text-sm mb-3 text-center">{error}</p>
-            )}
-            <button
-              onClick={verifyOtpAndBook}
-              disabled={loading}
-              className="w-full bg-red-600 text-white py-4 rounded-lg font-bold hover:bg-red-700 shadow-lg"
-            >
-              {loading ? "Verifying..." : "Confirm Booking"}
-            </button>
-            <button
-              onClick={() => setStep("form")}
-              className="mt-4 text-center text-sm text-slate-400 underline"
-            >
-              Wrong Number?
-            </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -608,14 +833,7 @@ const AboutPage = () => (
       <div className="p-8 md:p-12">
         <p className="text-lg text-slate-600 leading-relaxed mb-6">
           New Chitwan Driving Training Centre was established with a mission to
-          create safe, responsible, and skilled drivers in our community. For
-          over two decades, we have maintained a reputation for excellence,
-          patience, and results.
-        </p>
-        <p className="text-lg text-slate-600 leading-relaxed">
-          We pride ourselves on our personalized approach. Whether you are
-          nervous about holding a steering wheel for the first time or just need
-          a refresher before your trial, we have the right course for you.
+          create safe, responsible, and skilled drivers in our community.
         </p>
         <div className="mt-8 flex items-center gap-2 text-sm font-mono text-slate-400 bg-slate-50 p-3 rounded inline-block">
           <span>PAN No: 301569099</span>
@@ -626,7 +844,6 @@ const AboutPage = () => (
       Our Team
     </h2>
     <div className="grid md:grid-cols-2 gap-8">
-      {/* Dad */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden group border border-slate-100">
         <div className="h-80 bg-slate-200 relative">
           <img
@@ -657,7 +874,6 @@ const AboutPage = () => (
           </p>
         </div>
       </div>
-      {/* Mom */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden group border border-slate-100">
         <div className="h-80 bg-slate-200 relative">
           <img
@@ -710,21 +926,25 @@ const ContactPage = () => (
         </div>
         <div className="space-y-2">
           <p className="font-bold text-slate-800">Phone Numbers</p>
-          <p className="text-slate-600 text-sm">
-            Landline:{" "}
-            <span className="font-mono text-slate-500">056-518289</span>
-          </p>
-          <p className="text-slate-600 text-sm">
-            Anita Gaire:{" "}
-            <span className="font-mono text-slate-500">9845278967</span>
-          </p>
-          <p className="text-slate-600 text-sm">
-            Prem Gaire:{" "}
-            <span className="font-mono text-slate-500">9845048863</span>
-          </p>
+          <p className="text-slate-600 text-sm">Landline: 056-518289</p>
+          <p className="text-slate-600 text-sm">Anita Gaire: 9845278967</p>
+          <p className="text-slate-600 text-sm">Prem Gaire: 9845048863</p>
         </div>
       </div>
-
+      <div className="flex items-start gap-4">
+        <div className="bg-purple-100 p-3 rounded-full text-purple-600">
+          <Mail className="w-5 h-5" />
+        </div>
+        <div>
+          <p className="font-bold text-slate-800">Email</p>
+          <a
+            href="mailto:cdriving47@gmail.com"
+            className="text-blue-600 hover:underline text-sm"
+          >
+            cdriving47@gmail.com
+          </a>
+        </div>
+      </div>
       <a
         href="https://maps.app.goo.gl/ajFQJt3BAUP4dkCM8?g_st=ipc"
         target="_blank"
@@ -733,8 +953,6 @@ const ContactPage = () => (
         <Map className="w-5 h-5" /> Get Directions (Google Maps)
       </a>
     </div>
-
-    {/* MAP PINNED USING PLUS CODE MCQH+28 (Your Requested Location) */}
     <div className="bg-slate-200 rounded-xl overflow-hidden shadow-inner h-96 w-full relative mt-8">
       <iframe
         className="absolute inset-0 w-full h-full"
@@ -748,10 +966,29 @@ const ContactPage = () => (
   </div>
 );
 
-const AdminPanel = ({ packages, onExit }) => {
+const AdminPanel = ({
+  securitySettings,
+  updateSecurity,
+  onExit,
+  rates,
+  setRates,
+}) => {
   const [adminTab, setAdminTab] = useState("pending");
   const [bookings, setBookings] = useState([]);
   const [editingBooking, setEditingBooking] = useState(null);
+
+  const [pName, setPName] = useState("");
+  const [pPhone, setPPhone] = useState("");
+  const [pDuration, setPDuration] = useState("15 Days");
+  const [pDaily, setPDaily] = useState("60 Mins");
+  const [pDate, setPDate] = useState("");
+  const [pNotes, setPNotes] = useState("");
+  const [tempRates, setTempRates] = useState(rates);
+
+  // Security Settings Temporary State
+  const [tempQuestion, setTempQuestion] = useState(securitySettings.question);
+  const [tempAnswer, setTempAnswer] = useState(securitySettings.answer);
+  const [securityMessage, setSecurityMessage] = useState("");
 
   useEffect(() => {
     if (!db) return;
@@ -759,26 +996,14 @@ const AdminPanel = ({ packages, onExit }) => {
       collection(db, "artifacts", appId, "public", "data", "bookings"),
       orderBy("createdAt", "desc")
     );
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        setBookings(
-          snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-        );
-      },
-      (err) => console.log("DB waiting for init...")
-    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setBookings(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    });
     return () => unsubscribe();
   }, []);
 
-  const handleApprove = async (booking) => {
-    setEditingBooking({
-      ...booking,
-      finalPrice: booking.price,
-      newDate: booking.date,
-    });
-  };
-  const confirmApproval = async () => {
+  const handleSaveBookingEdit = async () => {
+    if (!editingBooking) return;
     await updateDoc(
       doc(
         db,
@@ -790,39 +1015,102 @@ const AdminPanel = ({ packages, onExit }) => {
         editingBooking.id
       ),
       {
-        status: "approved",
+        clientName: editingBooking.clientName,
+        clientPhone: editingBooking.clientPhone,
         price: Number(editingBooking.finalPrice),
         date: editingBooking.newDate,
+        status:
+          editingBooking.status === "pending"
+            ? "approved"
+            : editingBooking.status,
       }
     );
     setEditingBooking(null);
     setAdminTab("active");
   };
+
   const updateProgress = async (booking, increment) => {
+    const newProgress = (booking.progress || 0) + increment;
+    if (newProgress < 0) return;
     await updateDoc(
       doc(db, "artifacts", appId, "public", "data", "bookings", booking.id),
-      { progress: (booking.progress || 0) + increment }
+      { progress: newProgress }
     );
   };
-  const updateSchedule = async (bookingId, newDate) => {
-    await updateDoc(
-      doc(db, "artifacts", appId, "public", "data", "bookings", bookingId),
-      { date: newDate }
-    );
-  };
+
   const deleteBooking = async (id) => {
     if (confirm("Delete this?"))
       await deleteDoc(
         doc(db, "artifacts", appId, "public", "data", "bookings", id)
       );
   };
+
   const sendConfirmation = (booking) => {
+    const msg = `Namaste ${
+      booking.clientName
+    },\n\nYour driving course is confirmed!\n\n*Package:* ${
+      booking.packageName
+    }\n*Duration:* ${booking.duration}\n*Daily Time:* ${
+      booking.dailyTime || "N/A"
+    }\n*Start Date:* ${booking.date}\n*Total Price:* ${formatPrice(
+      booking.price
+    )}\n*Instructor:* ${
+      booking.instructor
+    }\n\nLocation: Bharatpur Height (Same building as Eye Express).\nPlease arrive 5 minutes early for your first session.\n\nContact: 9845048863`;
     window.open(
-      `https://wa.me/${booking.clientPhone}?text=${encodeURIComponent(
-        `Namaste ${booking.clientName}, your booking for ${booking.packageName} is confirmed. Next Class: ${booking.date}. Instructor: ${booking.instructor}.`
-      )}`,
+      `https://wa.me/${booking.clientPhone}?text=${encodeURIComponent(msg)}`,
       "_blank"
     );
+  };
+
+  const handleAddPrivate = async () => {
+    if (!pName) return alert("Name Required");
+    let price = 0;
+    if (pDuration === "1 Day") price = rates["1 Day"];
+    else if (pDuration === "15 Days")
+      price = pDaily === "60 Mins" ? rates["15 Days"] : rates["15 Days (30m)"];
+    else if (pDuration === "30 Days")
+      price = pDaily === "60 Mins" ? rates["30 Days"] : rates["30 Days (30m)"];
+
+    const pkgName =
+      pDuration === "1 Day"
+        ? "Private (1 Day)"
+        : `${pDuration} Private Course (${pDaily})`;
+
+    await addDoc(
+      collection(db, "artifacts", appId, "public", "data", "bookings"),
+      {
+        clientName: pName,
+        clientPhone: pPhone,
+        packageName: pkgName,
+        duration: pDuration,
+        dailyTime: pDaily,
+        date: pDate,
+        price: price,
+        instructor: "Prem Bahadur Gaire",
+        type: "private",
+        status: "private",
+        notes: pNotes,
+        progress: 0,
+        createdAt: serverTimestamp(),
+      }
+    );
+    alert("Private Booking Added!");
+    setAdminTab("active");
+    setPName("");
+    setPPhone("");
+    setPDate("");
+    setPNotes("");
+  };
+
+  const handleUpdateSecurity = () => {
+    if (tempQuestion.length < 5 || tempAnswer.length < 3) {
+      setSecurityMessage("Question/Answer must be long enough.");
+      return;
+    }
+    updateSecurity("question", tempQuestion);
+    updateSecurity("answer", tempAnswer);
+    setSecurityMessage("Security Question/Answer Updated!");
   };
 
   const pendingBookings = bookings.filter((b) => b.status === "pending");
@@ -834,44 +1122,77 @@ const AdminPanel = ({ packages, onExit }) => {
     <div className="bg-white rounded-xl shadow-lg border border-red-100 animate-fade-in overflow-hidden flex flex-col h-[calc(100vh-100px)] relative">
       {editingBooking && (
         <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-2xl">
-            <h3 className="font-bold text-lg mb-4">Approve Booking</h3>
-            <div className="mb-4">
-              <label className="text-xs font-bold text-slate-500 uppercase">
-                Final Price (Discreet)
-              </label>
-              <input
-                type="number"
-                className="w-full p-2 border rounded font-bold text-red-600"
-                value={editingBooking.finalPrice}
-                onChange={(e) =>
-                  setEditingBooking({
-                    ...editingBooking,
-                    finalPrice: e.target.value,
-                  })
-                }
-              />
-              <p className="text-xs text-slate-400 mt-1">
-                Change for discounts. Student won't see.
-              </p>
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-2xl animate-fade-in">
+            <div className="flex justify-between mb-4">
+              <h3 className="font-bold text-lg">Edit Booking</h3>
+              <button onClick={() => setEditingBooking(null)}>
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
             </div>
-            <div className="mb-6">
-              <label className="text-xs font-bold text-slate-500 uppercase">
-                Confirm/Edit Time
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border rounded"
-                value={editingBooking.newDate}
-                onChange={(e) =>
-                  setEditingBooking({
-                    ...editingBooking,
-                    newDate: e.target.value,
-                  })
-                }
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-500">
+                  Client Name
+                </label>
+                <input
+                  className="w-full p-2 border rounded"
+                  value={editingBooking.clientName}
+                  onChange={(e) =>
+                    setEditingBooking({
+                      ...editingBooking,
+                      clientName: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500">
+                  Phone
+                </label>
+                <input
+                  className="w-full p-2 border rounded"
+                  value={editingBooking.clientPhone}
+                  onChange={(e) =>
+                    setEditingBooking({
+                      ...editingBooking,
+                      clientPhone: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500">
+                  Price (Override)
+                </label>
+                <input
+                  type="number"
+                  className="w-full p-2 border rounded font-bold text-red-600"
+                  value={editingBooking.finalPrice}
+                  onChange={(e) =>
+                    setEditingBooking({
+                      ...editingBooking,
+                      finalPrice: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500">
+                  Date & Time
+                </label>
+                <input
+                  className="w-full p-2 border rounded"
+                  value={editingBooking.newDate}
+                  onChange={(e) =>
+                    setEditingBooking({
+                      ...editingBooking,
+                      newDate: e.target.value,
+                    })
+                  }
+                />
+              </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-6">
               <button
                 onClick={() => setEditingBooking(null)}
                 className="flex-1 py-2 border rounded"
@@ -879,15 +1200,16 @@ const AdminPanel = ({ packages, onExit }) => {
                 Cancel
               </button>
               <button
-                onClick={confirmApproval}
-                className="flex-1 py-2 bg-green-600 text-white rounded font-bold"
+                onClick={handleSaveBookingEdit}
+                className="flex-1 py-2 bg-slate-900 text-white rounded font-bold"
               >
-                Confirm
+                <Save className="w-4 h-4 inline mr-1" /> Save
               </button>
             </div>
           </div>
         </div>
       )}
+
       <div className="flex flex-col md:flex-row border-b border-slate-100 h-full">
         <div className="bg-slate-50 md:w-64 p-4 flex flex-row md:flex-col gap-2 overflow-x-auto shrink-0">
           <button
@@ -919,7 +1241,17 @@ const AdminPanel = ({ packages, onExit }) => {
                 : "text-slate-600 hover:bg-white"
             }`}
           >
-            <User className="w-4 h-4" /> Add Private
+            <Plus className="w-4 h-4" /> Add Private
+          </button>
+          <button
+            onClick={() => setAdminTab("settings")}
+            className={`p-3 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors ${
+              adminTab === "settings"
+                ? "bg-red-100 text-red-700"
+                : "text-slate-600 hover:bg-white"
+            }`}
+          >
+            <Settings className="w-4 h-4" /> Settings
           </button>
           <button
             onClick={onExit}
@@ -959,10 +1291,16 @@ const AdminPanel = ({ packages, onExit }) => {
                         Reject
                       </button>
                       <button
-                        onClick={() => handleApprove(b)}
+                        onClick={() =>
+                          setEditingBooking({
+                            ...b,
+                            finalPrice: b.price,
+                            newDate: b.date,
+                          })
+                        }
                         className="px-3 py-2 bg-slate-900 text-white rounded text-sm font-bold hover:bg-slate-800"
                       >
-                        Approve
+                        Review
                       </button>
                     </div>
                   </div>
@@ -986,49 +1324,67 @@ const AdminPanel = ({ packages, onExit }) => {
                           <p className="font-bold text-slate-800 text-lg">
                             {b.clientName}
                           </p>
-                          {b.price !== 15000 &&
-                            b.packageName.includes("15") && (
-                              <span className="bg-green-100 text-green-700 text-[10px] px-1 rounded">
-                                DISCOUNTED
-                              </span>
-                            )}
+                          <button
+                            onClick={() => deleteBooking(b.id)}
+                            className="text-red-400 hover:text-red-600 text-xs"
+                          >
+                            Remove
+                          </button>
                         </div>
                         <p className="text-sm text-slate-500">
                           {b.packageName}
                         </p>
+                        {b.notes && (
+                          <p className="text-xs text-amber-600 bg-amber-50 p-1 rounded mt-1 inline-block">
+                            📝 {b.notes}
+                          </p>
+                        )}
                         <div className="flex items-center gap-2 mt-1">
-                          <Edit3 className="w-3 h-3 text-slate-400" />
-                          <input
-                            className="text-sm font-bold text-blue-600 bg-transparent border-b border-dashed border-blue-300 focus:outline-none w-40"
-                            defaultValue={b.date}
-                            onBlur={(e) => updateSchedule(b.id, e.target.value)}
-                          />
+                          <p className="text-sm font-bold text-blue-600">
+                            {b.date}
+                          </p>
+                          <button
+                            onClick={() =>
+                              setEditingBooking({
+                                ...b,
+                                finalPrice: b.price,
+                                newDate: b.date,
+                              })
+                            }
+                          >
+                            <Edit3 className="w-3 h-3 text-slate-400 hover:text-blue-500" />
+                          </button>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-slate-700">
                           {formatPrice(b.price)}
                         </p>
-                        <button
-                          onClick={() => deleteBooking(b.id)}
-                          className="text-xs text-red-300 hover:text-red-500 mt-1"
-                        >
-                          Remove
-                        </button>
                       </div>
                     </div>
-                    {b.packageName.includes("15") && (
+                    {(b.packageName.includes("15") ||
+                      b.packageName.includes("30")) && (
                       <div className="bg-slate-100 p-3 rounded mb-3">
                         <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
                           <span>Course Progress</span>
-                          <span>Day {b.progress || 0} / 15</span>
+                          <span>Day {b.progress || 0}</span>
                         </div>
                         <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => updateProgress(b, -1)}
+                            className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
                           <div className="flex-grow h-2 bg-slate-200 rounded-full overflow-hidden">
                             <div
                               className="h-full bg-green-500 transition-all"
                               style={{
-                                width: `${((b.progress || 0) / 15) * 100}%`,
+                                width: `${
+                                  ((b.progress || 0) /
+                                    (b.packageName.includes("30") ? 30 : 15)) *
+                                  100
+                                }%`,
                               }}
                             ></div>
                           </div>
@@ -1052,7 +1408,7 @@ const AdminPanel = ({ packages, onExit }) => {
                         onClick={() => sendConfirmation(b)}
                         className="px-3 py-1 bg-[#25D366] text-white rounded text-xs font-bold hover:opacity-90 flex items-center gap-1"
                       >
-                        <MessageCircle className="w-3 h-3" /> Info
+                        <MessageCircle className="w-3 h-3" /> Send Info
                       </button>
                     </div>
                   </div>
@@ -1065,71 +1421,208 @@ const AdminPanel = ({ packages, onExit }) => {
               <div className="p-3 bg-amber-50 text-amber-800 text-sm rounded border border-amber-200">
                 Private Booking (Skips Queue)
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={pDuration}
+                  onChange={(e) => setPDuration(e.target.value)}
+                  className="p-2 border rounded"
+                >
+                  <option>1 Day</option>
+                  <option>15 Days</option>
+                  <option>30 Days</option>
+                </select>
+                <select
+                  value={pDaily}
+                  onChange={(e) => setPDaily(e.target.value)}
+                  className="p-2 border rounded"
+                >
+                  <option>30 Mins</option>
+                  <option>60 Mins</option>
+                </select>
+              </div>
               <input
                 type="text"
                 placeholder="Name"
                 className="w-full p-2 border rounded"
-                id="p_name"
+                value={pName}
+                onChange={(e) => setPName(e.target.value)}
               />
               <input
                 type="text"
                 placeholder="Phone"
                 className="w-full p-2 border rounded"
-                id="p_phone"
+                value={pPhone}
+                onChange={(e) => setPPhone(e.target.value)}
               />
               <input
                 type="text"
-                placeholder="Service"
+                placeholder="Date & Time"
                 className="w-full p-2 border rounded"
-                id="p_desc"
+                value={pDate}
+                onChange={(e) => setPDate(e.target.value)}
               />
-              <input
-                type="text"
-                placeholder="Date"
+              <textarea
+                placeholder="Notes (e.g. Family Discount, Cash Paid)"
                 className="w-full p-2 border rounded"
-                id="p_date"
-              />
-              <input
-                type="number"
-                placeholder="Price"
-                className="w-full p-2 border rounded"
-                id="p_price"
+                value={pNotes}
+                onChange={(e) => setPNotes(e.target.value)}
               />
               <button
-                onClick={async () => {
-                  const name = document.getElementById("p_name").value;
-                  if (!name) return alert("Required");
-                  await addDoc(
-                    collection(
-                      db,
-                      "artifacts",
-                      appId,
-                      "public",
-                      "data",
-                      "bookings"
-                    ),
-                    {
-                      clientName: name,
-                      clientPhone: document.getElementById("p_phone").value,
-                      packageName:
-                        document.getElementById("p_desc").value || "Private",
-                      date: document.getElementById("p_date").value,
-                      price: Number(
-                        document.getElementById("p_price").value || 0
-                      ),
-                      instructor: "Prem Bahadur Gaire",
-                      type: "private",
-                      status: "private",
-                      createdAt: serverTimestamp(),
-                    }
-                  );
-                  alert("Added!");
-                  setAdminTab("active");
-                }}
+                onClick={handleAddPrivate}
                 className="w-full bg-slate-800 text-white p-3 rounded-lg font-bold"
               >
-                Save
+                Save to Active
               </button>
+            </div>
+          )}
+          {adminTab === "settings" && (
+            <div className="max-w-md space-y-6">
+              <h2 className="text-xl font-bold">Security & Price Settings</h2>
+
+              {/* PIN Change Section */}
+              <div className="bg-white p-4 rounded-lg shadow-md border border-slate-200">
+                <div className="flex items-center gap-2 mb-4 text-slate-800 font-bold">
+                  <Key className="w-5 h-5 text-red-600" /> Change Login PIN
+                </div>
+                <label className="text-xs font-bold text-slate-500">
+                  Current PIN:
+                </label>
+                <input
+                  type="text"
+                  value={securitySettings.pin}
+                  onChange={(e) => updateSecurity("pin", e.target.value)}
+                  className="w-full p-3 border rounded font-mono text-center tracking-widest text-lg"
+                />
+              </div>
+
+              {/* Security Question Section */}
+              <div className="bg-white p-4 rounded-lg shadow-md border border-slate-200">
+                <div className="flex items-center gap-2 mb-4 text-slate-800 font-bold">
+                  <Lock className="w-5 h-5 text-indigo-600" /> Recovery Question
+                  Setup
+                </div>
+
+                <label className="text-xs font-bold text-slate-500">
+                  Security Question:
+                </label>
+                <input
+                  type="text"
+                  value={tempQuestion}
+                  onChange={(e) => setTempQuestion(e.target.value)}
+                  className="w-full p-3 border rounded mb-3"
+                />
+
+                <label className="text-xs font-bold text-slate-500">
+                  Recovery Answer:
+                </label>
+                <input
+                  type="text"
+                  value={tempAnswer}
+                  onChange={(e) => setTempAnswer(e.target.value)}
+                  className="w-full p-3 border rounded mb-4"
+                />
+
+                <button
+                  onClick={handleUpdateSecurity}
+                  className="w-full py-2 bg-indigo-600 text-white rounded text-sm font-bold"
+                >
+                  Update Question/Answer
+                </button>
+                {securityMessage && (
+                  <p className="text-xs mt-2 text-green-600 font-medium">
+                    {securityMessage}
+                  </p>
+                )}
+              </div>
+
+              {/* Price Settings Section */}
+              <div className="bg-white p-4 rounded-lg shadow-md border border-slate-200">
+                <div className="flex items-center gap-2 mb-4 text-slate-800 font-bold">
+                  <Settings className="w-5 h-5 text-blue-600" /> Price Settings
+                  (NPR)
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm">1 Day (Trial)</label>
+                    <input
+                      type="number"
+                      value={tempRates["1 Day"]}
+                      onChange={(e) =>
+                        setTempRates({
+                          ...tempRates,
+                          "1 Day": Number(e.target.value),
+                        })
+                      }
+                      className="w-24 p-1 border rounded text-right"
+                    />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm">15 Days (60m)</label>
+                    <input
+                      type="number"
+                      value={tempRates["15 Days"]}
+                      onChange={(e) =>
+                        setTempRates({
+                          ...tempRates,
+                          "15 Days": Number(e.target.value),
+                        })
+                      }
+                      className="w-24 p-1 border rounded text-right"
+                    />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm">15 Days (30m)</label>
+                    <input
+                      type="number"
+                      value={tempRates["15 Days (30m)"]}
+                      onChange={(e) =>
+                        setTempRates({
+                          ...tempRates,
+                          "15 Days (30m)": Number(e.target.value),
+                        })
+                      }
+                      className="w-24 p-1 border rounded text-right bg-blue-50 border-blue-200"
+                    />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm">30 Days (60m)</label>
+                    <input
+                      type="number"
+                      value={tempRates["30 Days"]}
+                      onChange={(e) =>
+                        setTempRates({
+                          ...tempRates,
+                          "30 Days": Number(e.target.value),
+                        })
+                      }
+                      className="w-24 p-1 border rounded text-right"
+                    />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm">30 Days (30m)</label>
+                    <input
+                      type="number"
+                      value={tempRates["30 Days (30m)"]}
+                      onChange={(e) =>
+                        setTempRates({
+                          ...tempRates,
+                          "30 Days (30m)": Number(e.target.value),
+                        })
+                      }
+                      className="w-24 p-1 border rounded text-right bg-blue-50 border-blue-200"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      setRates(tempRates);
+                      alert("Rates Updated!");
+                    }}
+                    className="w-full py-2 bg-blue-600 text-white rounded text-sm font-bold mt-2"
+                  >
+                    Update Prices
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1141,37 +1634,35 @@ const AdminPanel = ({ packages, onExit }) => {
 // --- MAIN APP ---
 
 export default function App() {
-  useCopyProtection(true); // Active protection
+  useCopyProtection(true);
   const [view, setView] = useState("home");
   const [loginInput, setLoginInput] = useState("");
   const [loginError, setLoginError] = useState("");
-  const [securitySettings] = useStickyState(
-    { pin: "1234" },
+  const [recoveryAnswer, setRecoveryAnswer] = useState("");
+
+  const [newPin, setNewPin] = useState("");
+  const [recoveryStep, setRecoveryStep] = useState("question");
+
+  const [securitySettings, setSecuritySettings] = useStickyState(
+    {
+      pin: "1234",
+      question: "What is the name of your first pet?",
+      answer: "lucky",
+    },
     "ncdc_security_v3"
   );
-  const [packages] = useState([
+
+  // Rate State
+  const [rates, setRates] = useStickyState(
     {
-      id: 1,
-      name: "Trial Preparation (1 Hour)",
-      duration: 60,
-      price: 1500,
-      description: 'Intensive practice for the "8" and "L" tracks.',
+      "1 Day": 1500,
+      "15 Days": 15000,
+      "15 Days (30m)": 10000,
+      "30 Days": 25000,
+      "30 Days (30m)": 18000,
     },
-    {
-      id: 2,
-      name: "15 Day Learning Course",
-      duration: 45,
-      price: 15000,
-      description: "Complete beginner to confident driver.",
-    },
-    {
-      id: 3,
-      name: "Scooter Training",
-      duration: 45,
-      price: 8000,
-      description: "Balance and control training for scooters.",
-    },
-  ]);
+    "ncdc_rates_v2"
+  );
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -1183,8 +1674,47 @@ export default function App() {
       setLoginError("Incorrect PIN");
     }
   };
+
+  // Updated Recovery Logic
+  const handleRecover = (e) => {
+    e.preventDefault();
+    if (recoveryStep === "question") {
+      // Step 1: Verify Answer
+      if (
+        recoveryAnswer.toLowerCase().trim() ===
+        securitySettings.answer.toLowerCase().trim()
+      ) {
+        setRecoveryStep("reset");
+        setLoginError("");
+      } else {
+        setLoginError("Incorrect Answer");
+      }
+    } else {
+      // Step 2: Set New PIN
+      if (newPin.length < 4) {
+        setLoginError("PIN must be at least 4 digits");
+        return;
+      }
+      setSecuritySettings((prev) => ({ ...prev, pin: newPin }));
+      alert("PIN Reset Successful! Logging you in...");
+      setView("admin");
+      // Reset form state for next time
+      setRecoveryStep("question");
+      setRecoveryAnswer("");
+      setNewPin("");
+      setLoginError("");
+    }
+  };
+
+  const updateSecurity = (field, value) => {
+    setSecuritySettings((prev) => ({ ...prev, [field]: value }));
+  };
+
   const handleAddBooking = async (data) => {
     try {
+      if (data.type === "public") {
+        // Simple conflict check
+      }
       if (db)
         await addDoc(
           collection(db, "artifacts", appId, "public", "data", "bookings"),
@@ -1221,9 +1751,10 @@ export default function App() {
         {view === "contact" && <ContactPage />}
         {view === "booking" && (
           <div className="max-w-4xl mx-auto p-4 pt-8">
-            <BookingView packages={packages} onAddBooking={handleAddBooking} />
+            <BookingView onAddBooking={handleAddBooking} rates={rates} />
           </div>
         )}
+
         {view === "login" && (
           <div className="min-h-[60vh] flex items-center justify-center p-4">
             <div className="w-full max-w-sm bg-white p-8 rounded-xl shadow-xl animate-fade-in border-t-4 border-red-600">
@@ -1254,12 +1785,96 @@ export default function App() {
                   Login
                 </button>
               </form>
+              <button
+                onClick={() => {
+                  setView("recovery");
+                  setLoginError("");
+                }}
+                className="w-full mt-4 text-xs text-slate-400 hover:text-red-500 text-center underline"
+              >
+                Forgot PIN?
+              </button>
             </div>
           </div>
         )}
+
+        {view === "recovery" && (
+          <div className="min-h-[60vh] flex items-center justify-center p-4">
+            <div className="w-full max-w-sm bg-white p-8 rounded-xl shadow-xl animate-fade-in">
+              <h2 className="font-bold text-xl mb-4 text-center">
+                {recoveryStep === "question" ? "Reset PIN" : "Set New PIN"}
+              </h2>
+
+              <form onSubmit={handleRecover}>
+                {recoveryStep === "question" ? (
+                  <>
+                    <p className="text-sm text-slate-500 mb-2">
+                      Security Question:
+                    </p>
+                    <p className="font-bold text-slate-800 mb-4 p-3 bg-slate-50 rounded border">
+                      {securitySettings.question}
+                    </p>
+                    <input
+                      type="text"
+                      placeholder="Your Answer"
+                      value={recoveryAnswer}
+                      onChange={(e) => setRecoveryAnswer(e.target.value)}
+                      className="w-full p-3 border rounded mb-4 outline-none focus:border-red-500"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-slate-500 mb-2">
+                      Enter your new PIN code:
+                    </p>
+                    <input
+                      type="text"
+                      placeholder="New PIN"
+                      value={newPin}
+                      onChange={(e) => setNewPin(e.target.value)}
+                      className="w-full p-3 border rounded mb-4 outline-none focus:border-red-500 text-center tracking-widest text-xl"
+                      autoFocus
+                    />
+                  </>
+                )}
+
+                {loginError && (
+                  <p className="text-red-500 text-sm mb-4">{loginError}</p>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full bg-slate-800 text-white p-3 rounded font-bold"
+                >
+                  {recoveryStep === "question"
+                    ? "Verify Answer"
+                    : "Save New PIN"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setView("login");
+                    setRecoveryStep("question");
+                  }}
+                  className="w-full mt-2 text-sm text-slate-400 text-center block"
+                >
+                  Back to Login
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
         {view === "admin" && (
           <div className="max-w-6xl mx-auto p-4">
-            <AdminPanel packages={packages} onExit={() => setView("home")} />
+            <AdminPanel
+              securitySettings={securitySettings}
+              updateSecurity={updateSecurity}
+              rates={rates}
+              setRates={setRates}
+              onExit={() => setView("home")}
+            />
           </div>
         )}
       </main>
@@ -1268,6 +1883,7 @@ export default function App() {
           New Chitwan Driving Training Centre
         </p>
         <p>Bharatpur Height, Chitwan (Same building as Eye Express)</p>
+        <p className="text-xs mt-1">Email: cdriving47@gmail.com</p>
         <p className="mt-4 opacity-50">
           © 2024 All Rights Reserved. • PAN: 301569099
         </p>
