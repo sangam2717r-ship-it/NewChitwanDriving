@@ -68,11 +68,11 @@ const firebaseConfig = {
 };
 
 // --- INITIALIZATION ---
-import { Auth } from "firebase/auth"; // Required for Auth typing
-import { Firestore } from "firebase/firestore"; // Required for Firestore typing
-let auth = {} as Auth; // Declare auth with a type
-let db = {} as Firestore; // Declare db with a type
-let firebaseError = null;
+import { Auth } from "firebase/auth";
+import { Firestore } from "firebase/firestore";
+let auth = {} as Auth;
+let db = {} as Firestore;
+let firebaseError: string | null = null; // <-- FIX: Explicitly defined as string or null
 
 try {
   const app = initializeApp(firebaseConfig);
