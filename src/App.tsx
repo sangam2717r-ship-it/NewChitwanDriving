@@ -68,7 +68,10 @@ const firebaseConfig = {
 };
 
 // --- INITIALIZATION ---
-let auth, db;
+import { Auth } from "firebase/auth"; // Required for Auth typing
+import { Firestore } from "firebase/firestore"; // Required for Firestore typing
+let auth = {} as Auth; // Declare auth with a type
+let db = {} as Firestore; // Declare db with a type
 let firebaseError = null;
 
 try {
