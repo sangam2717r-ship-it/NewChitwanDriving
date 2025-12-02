@@ -1818,7 +1818,7 @@ const ContactPage = ({ lang }: any) => (
         className="absolute inset-0 w-full h-full"
         src="https://maps.google.com/maps?q=MCQH%2B28+Bharatpur&t=&z=17&ie=UTF8&iwloc=&output=embed"
         style={{ border: 0 }}
-        allowFullScreen=""
+        allowFullScreen={true}
         loading="lazy"
         title="Location Map"
       ></iframe>
