@@ -97,7 +97,7 @@ try {
 
 const appId = "new-chitwan-v1";
 
-// 🔥 TS FIX: Define the explicit type for Booking objects
+// 🔥 TS FIX: Explicit types
 interface BookingItem {
   id: string;
   status: "approved" | "pending" | "private" | "rejected" | string;
@@ -106,8 +106,8 @@ interface BookingItem {
   packageName: string;
   duration: string;
   dailyTime?: string;
-  date: string; // Summary date/time string
-  courseDates: Array<{ date: string; time: string | null }>; // Detailed schedule
+  date: string;
+  courseDates: Array<{ date: string; time: string | null }>;
   price: number;
   instructor: string;
   type: "public" | "private";
@@ -116,7 +116,6 @@ interface BookingItem {
   createdAt?: Timestamp;
 }
 
-// 🔥 TS FIX: Define the explicit type for Security Settings
 interface SecuritySettings {
   pin: string;
   question: string;
@@ -331,7 +330,7 @@ const dictionary: { [key: string]: { [key: string]: string } } = {
     "Private (1 Day)": "निजी (१ दिन)",
     "Private Course": "निजी कोर्स",
     "Trial Preparation (1 Day)": "परीक्षण तयारी (१ दिन)",
-    "PIN must be at least 4 digits": "पिन कम्तीमा ४ अंकको हुनुपछ",
+    "PIN must be at least 4 digits": "पिन कम्तीमा ४ अंकको हुनुपर्छ",
     "To be scheduled": "तालिका बनाउन बाँकी",
     "Update PIN": "पिन अपडेट गर्नुहोस्",
     "Our History": "हाम्रो इतिहास",
@@ -373,13 +372,10 @@ const useCopyProtection = (active = true) => {
       if (e.key === "F12") e.preventDefault();
     };
     const preventDrag = (e: any) => e.preventDefault();
-
     if (!active) return;
-
     document.addEventListener("contextmenu", preventContext);
     document.addEventListener("keydown", preventKeys);
     document.addEventListener("dragstart", preventDrag);
-
     return () => {
       document.removeEventListener("contextmenu", preventContext);
       document.removeEventListener("keydown", preventKeys);
@@ -389,7 +385,7 @@ const useCopyProtection = (active = true) => {
 };
 
 // --- UTILITIES ---
-// 🔥 TS FIX: Make useStickyState a generic function
+// 🔥 TS FIX: Generic Hook
 export function useStickyState<T>(
   defaultValue: T,
   key: string
@@ -419,7 +415,6 @@ const formatPrice = (price: number) =>
 const getMonthDetails = (year: number, month: number) => {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  // FIX: Using English day names for calendar structure regardless of language
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const monthNames = [
     T("January", "en"),
@@ -571,7 +566,6 @@ const CalendarPicker = ({
           <ChevronRightIcon className="w-5 h-5" />
         </button>
       </div>
-
       {requiredDays > 1 && (
         <div
           className={`text-center p-3 rounded-lg text-sm font-bold mb-4 transition-colors ${
@@ -584,7 +578,6 @@ const CalendarPicker = ({
           {T("days selected", lang)}.
         </div>
       )}
-
       <div className="grid grid-cols-7 gap-1 text-center">
         {monthDetails.dayNames.map((day) => (
           <span key={day} className="text-xs font-bold text-slate-500 py-2">
@@ -614,7 +607,6 @@ const CalendarPicker = ({
           </div>
         ))}
       </div>
-
       {isSelectionComplete && (
         <div className="mt-6 text-center">
           <button
@@ -725,7 +717,6 @@ const EditScheduleModal = ({ booking, onClose, lang, onSave }: any) => {
             </div>
           ))}
         </div>
-
         <div className="mt-6 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 border rounded-lg">
             {T("Cancel", lang)}
@@ -864,7 +855,6 @@ const Navbar = ({ setView, activeView, language, setLanguage }: any) => {
   );
 };
 
-// 🔥 RECAPTCHA FIX: Added recaptchaVerifier prop
 const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
   const [tab, setTab] = useState("new");
 
@@ -937,34 +927,29 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
       setError(T("Please enter valid name and phone number", lang));
       return;
     }
-    // 🔥 FLOW FIX: Ensure the verifier is ready before proceeding
+    // 🔥 RECAPTCHA CHECK
     if (!recaptchaVerifier) {
       setError("Recaptcha verification not ready. Please try again.");
       return;
     }
-
     setError("");
     setLoading(true);
 
     try {
-      // 🔥 RECAPTCHA FIX: Pass the recaptchaVerifier as the third argument
       const result = await signInWithPhoneNumber(
         auth,
         clientPhone,
         recaptchaVerifier
       );
-
       setConfirmationResult(result as any);
       setStep("otp");
       setLoading(false);
     } catch (err: any) {
-      console.warn("SMS Failed or Recaptcha Error. Falling back to Sim Mode.");
-
-      // If the real SMS fails (e.g., in a preview environment), we trigger simulation mode.
+      console.warn("SMS Failed. Falling back to Sim Mode.");
       setSimulationMode(true);
       setStep("otp");
       setLoading(false);
-      // 🔥 RECAPTCHA FIX: Reset recaptcha to allow re-verification if the user goes back and retries
+      // 🔥 RECAPTCHA RESET
       if (recaptchaVerifier && recaptchaVerifier.clear) {
         recaptchaVerifier.clear();
       }
@@ -986,7 +971,6 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
       } else {
         await (confirmationResult as any).confirm(otp);
       }
-
       const pkgName =
         duration === "1 Day"
           ? T("Trial Preparation (1 Day)", lang)
@@ -1005,8 +989,8 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
         packageName: pkgName,
         duration,
         dailyTime,
-        date: dateSummary, // Single string for admin list view
-        courseDates: selectedDates, // Detailed array for detailed view
+        date: dateSummary,
+        courseDates: selectedDates,
         price: currentPrice,
         instructor,
         type: "public",
@@ -1024,15 +1008,11 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
   const handleCheckProgress = async () => {
     setCheckError("");
     setMyBookings([]);
-
-    // 🔥 FIX 1: Normalize the input phone number for search consistency
+    // 🔥 FIX: Clean search input
     const cleanPhone = checkPhone.replace(/[^\d+]/g, "");
-
-    if (!cleanPhone || cleanPhone.length < 9) {
+    if (!cleanPhone || cleanPhone.length < 9)
       return setCheckError(T("Please enter a valid phone number.", lang));
-    }
 
-    // 🔥 FIX 2: Use the cleanPhone state in the Firestore query
     const q = query(
       collection(db, "artifacts", appId, "public", "data", "bookings"),
       where("clientPhone", "==", cleanPhone)
@@ -1042,7 +1022,7 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
     if (snapshot.empty) {
       setCheckError(T("No booking found for this number.", lang));
     } else {
-      // 🔥 TS2339 FIX: Map the data to the correct BookingItem type before filtering
+      // 🔥 FIX: Type casting for TS2339
       const activeCourses = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as BookingItem))
         .filter(
@@ -1055,7 +1035,6 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
           T("No *active* (approved) booking found for this number.", lang)
         );
       } else {
-        // This returns ALL documents matching the criteria, resolving the "returns only 1" issue.
         setMyBookings(activeCourses);
         setCheckError("");
       }
@@ -1162,7 +1141,7 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
                   <h4 className="font-bold text-md text-slate-800 mb-1">
                     {booking.packageName}
                   </h4>
-                  <p className="text-sm text-slate-500 mb-4">
+                  <p className="text-slate-500 text-xs mb-4">
                     Instructor: {booking.instructor}
                   </p>
 
@@ -1548,8 +1527,9 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
                   </div>
                 </div>
                 {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+                {/* The reCAPTCHA badge will appear here via the #recaptcha-container element in App.tsx */}
 
-                {/* Recaptcha Loading Check (Fix for Recaptcha not ready) */}
+                {/* 🔥 RECAPTCHA FIX: Show loading state if verifier is not ready */}
                 {!recaptchaVerifier && (
                   <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded mb-3 text-center">
                     Verification service loading... Please wait.
@@ -1558,7 +1538,7 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
 
                 <button
                   onClick={requestOtp}
-                  disabled={loading || !recaptchaVerifier} // <-- FIX APPLIED HERE
+                  disabled={loading || !recaptchaVerifier}
                   className="w-full bg-slate-900 text-white py-4 rounded-lg font-bold hover:bg-slate-800 mt-auto shadow-lg flex items-center justify-center gap-2"
                 >
                   {loading ? (
@@ -1848,7 +1828,7 @@ const ContactPage = ({ lang }: any) => (
         className="absolute inset-0 w-full h-full"
         src="https://maps.google.com/maps?q=MCQH%2B28+Bharatpur&t=&z=17&ie=UTF8&iwloc=&output=embed"
         style={{ border: 0 }}
-        allowFullScreen={true}
+        allowFullScreen=""
         loading="lazy"
         title="Location Map"
       ></iframe>
@@ -1923,7 +1903,7 @@ const AdminPanel = ({
   lang,
 }: any) => {
   const [adminTab, setAdminTab] = useState("pending");
-  // 🔥 TS FIX: Use the defined BookingItem interface
+  // 🔥 TS FIX: Explicit type for bookings state
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [editingBooking, setEditingBooking] = useState<any>(null);
   const [scheduleModal, setScheduleModal] = useState<any>(null);
@@ -1966,7 +1946,7 @@ const AdminPanel = ({
       orderBy("createdAt", "desc")
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      // Mapping the Firestore document to the typed array
+      // 🔥 TS FIX: Casting to BookingItem
       setBookings(
         snapshot.docs.map(
           (doc) => ({ id: doc.id, ...doc.data() } as BookingItem)
@@ -2956,11 +2936,10 @@ export default function App() {
   const [loginInput, setLoginInput] = useState("");
   const [loginError, setLoginError] = useState("");
   const [recoveryAnswer, setRecoveryAnswer] = useState("");
-
   const [newPin, setNewPin] = useState("");
   const [recoveryStep, setRecoveryStep] = useState("question");
 
-  // 🔥 TS FIX: useStickyState is now generic
+  // 🔥 TS FIX: Generic state typing
   const [securitySettings, setSecuritySettings] =
     useStickyState<SecuritySettings>(
       {
@@ -2983,14 +2962,13 @@ export default function App() {
     "ncdc_rates_v2"
   );
 
-  // 🔥 RECAPTCHA FIX: State and Ref for RecaptchaVerifier
+  // 🔥 RECAPTCHA FIX: State and Ref
   const recaptchaRef = useRef(null);
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<any>(null);
 
   useEffect(() => {
     if (auth && !recaptchaVerifier) {
       try {
-        // The recaptcha-container must exist in the JSX for this to attach.
         const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
           size: "invisible",
           callback: (response: any) => {
@@ -3000,7 +2978,6 @@ export default function App() {
             console.log("Recaptcha expired, user needs to retry.");
           },
         });
-        // Render it to make the badge visible
         verifier.render().then(() => setRecaptchaVerifier(verifier));
       } catch (e) {
         console.error("Recaptcha Init Error:", e);
@@ -3037,7 +3014,7 @@ export default function App() {
         setLoginError(T("PIN must be at least 4 digits", language));
         return;
       }
-      // 🔥 TS FIX: The state updater now correctly infers the type of 'prev'
+      // 🔥 TS FIX: Properly typed update
       setSecuritySettings((prev) => ({ ...prev, pin: newPin }));
 
       alert(T("PIN Reset Successful! Logging you in...", language));
@@ -3097,7 +3074,7 @@ export default function App() {
         {view === "about" && <AboutPage lang={language} />}
         {view === "contact" && <ContactPage lang={language} />}
 
-        {/* 🔥 RECAPTCHA FIX: Pass the verifier down to BookingView */}
+        {/* 🔥 RECAPTCHA FIX: Pass verifier */}
         {view === "booking" && (
           <div className="max-w-4xl mx-auto p-4 pt-8">
             <BookingView
@@ -3162,7 +3139,6 @@ export default function App() {
                   ? T("Reset PIN", language)
                   : T("Set New PIN", language)}
               </h2>
-
               <form onSubmit={handleRecover}>
                 {recoveryStep === "question" ? (
                   <>
@@ -3195,11 +3171,9 @@ export default function App() {
                     />
                   </>
                 )}
-
                 {loginError && (
                   <p className="text-red-500 text-sm mb-4">{loginError}</p>
                 )}
-
                 <button
                   type="submit"
                   className="w-full bg-slate-800 text-white p-3 rounded font-bold"
@@ -3208,7 +3182,6 @@ export default function App() {
                     ? T("Verify Answer", language)
                     : T("Save New PIN", language)}
                 </button>
-
                 <button
                   type="button"
                   onClick={() => {
