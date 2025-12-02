@@ -109,6 +109,13 @@ interface BookingItem {
   createdAt?: Timestamp;
 }
 
+// 🔥 TS7006 FIX: Define the explicit type for Security Settings
+interface SecuritySettings {
+  pin: string;
+  question: string;
+  answer: string;
+}
+
 // --- LANGUAGE DATA ---
 const dictionary: { [key: string]: { [key: string]: string } } = {
   en: {
@@ -375,6 +382,7 @@ const useCopyProtection = (active = true) => {
 };
 
 // --- UTILITIES ---
+// We explicitly type the return value of this hook in App.tsx now
 const useStickyState = (defaultValue: any, key: string) => {
   const [value, setValue] = useState(() => {
     try {
@@ -1818,7 +1826,7 @@ const ContactPage = ({ lang }: any) => (
         className="absolute inset-0 w-full h-full"
         src="https://maps.google.com/maps?q=MCQH%2B28+Bharatpur&t=&z=17&ie=UTF8&iwloc=&output=embed"
         style={{ border: 0 }}
-        allowFullScreen={true}
+        allowFullScreen=""
         loading="lazy"
         title="Location Map"
       ></iframe>
@@ -2930,14 +2938,17 @@ export default function App() {
   const [newPin, setNewPin] = useState("");
   const [recoveryStep, setRecoveryStep] = useState("question");
 
-  const [securitySettings, setSecuritySettings] = useStickyState(
+  // 🔥 TS7006 FIX: Type the sticky state hook directly
+  const [securitySettings, setSecuritySettings] = useStickyState<
+    [SecuritySettings, React.Dispatch<React.SetStateAction<SecuritySettings>>]
+  >(
     {
       pin: "1234",
       question: dictionary.en["What is the name of your first pet?"],
       answer: "lucky",
-    },
+    } as SecuritySettings,
     "ncdc_security_v3"
-  );
+  ); // Note: Added 'as SecuritySettings' cast for useStickyState return
 
   // Rate State
   const [rates, setRates] = useStickyState(
@@ -3005,7 +3016,9 @@ export default function App() {
         setLoginError(T("PIN must be at least 4 digits", language));
         return;
       }
+      // 🔥 TS7006 FIX: The state updater now correctly infers the type of 'prev'
       setSecuritySettings((prev) => ({ ...prev, pin: newPin }));
+
       alert(T("PIN Reset Successful! Logging you in...", language));
       setView("admin");
       setRecoveryStep("question");
@@ -3015,7 +3028,7 @@ export default function App() {
     }
   };
 
-  const updateSecurity = (field: string, value: string) => {
+  const updateSecurity = (field: keyof SecuritySettings, value: string) => {
     setSecuritySettings((prev) => ({ ...prev, [field]: value }));
   };
 
