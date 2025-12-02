@@ -1,5 +1,13 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  Dispatch,
+  SetStateAction,
+} from "react";
 import {
+  // Added Dispatch and SetStateAction for correct generic typing
   Shield,
   Lock,
   Calendar,
@@ -109,7 +117,7 @@ interface BookingItem {
   createdAt?: Timestamp;
 }
 
-// 🔥 TS7006 FIX: Define the explicit type for Security Settings
+// 🔥 TS FIX: Define the explicit type for Security Settings
 interface SecuritySettings {
   pin: string;
   question: string;
@@ -382,9 +390,12 @@ const useCopyProtection = (active = true) => {
 };
 
 // --- UTILITIES ---
-// We explicitly type the return value of this hook in App.tsx now
-const useStickyState = (defaultValue: any, key: string) => {
-  const [value, setValue] = useState(() => {
+// 🔥 TS2558 FIX: Make useStickyState a generic function
+export function useStickyState<T>(
+  defaultValue: T,
+  key: string
+): [T, Dispatch<SetStateAction<T>>] {
+  const [value, setValue] = useState<T>(() => {
     try {
       const stickyValue = window.localStorage.getItem(key);
       return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
@@ -396,7 +407,7 @@ const useStickyState = (defaultValue: any, key: string) => {
     window.localStorage.setItem(key, JSON.stringify(value));
   }, [key, value]);
   return [value, setValue];
-};
+}
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("en-NP", {
@@ -1826,7 +1837,7 @@ const ContactPage = ({ lang }: any) => (
         className="absolute inset-0 w-full h-full"
         src="https://maps.google.com/maps?q=MCQH%2B28+Bharatpur&t=&z=17&ie=UTF8&iwloc=&output=embed"
         style={{ border: 0 }}
-        allowFullScreen={true}
+        allowFullScreen=""
         loading="lazy"
         title="Location Map"
       ></iframe>
@@ -2187,7 +2198,6 @@ const AdminPanel = ({
                 </label>
                 <input
                   type="number"
-                  className="w-full p-2 border rounded font-bold text-red-600"
                   value={editingBooking.finalPrice}
                   onChange={(e: any) =>
                     setEditingBooking({
@@ -2195,6 +2205,7 @@ const AdminPanel = ({
                       finalPrice: Number(e.target.value),
                     })
                   }
+                  className="w-full p-2 border rounded font-bold text-red-600"
                 />
               </div>
               <div>
@@ -2938,17 +2949,16 @@ export default function App() {
   const [newPin, setNewPin] = useState("");
   const [recoveryStep, setRecoveryStep] = useState("question");
 
-  // 🔥 TS7006 FIX: Type the sticky state hook directly
-  const [securitySettings, setSecuritySettings] = useStickyState<
-    [SecuritySettings, React.Dispatch<React.SetStateAction<SecuritySettings>>]
-  >(
-    {
-      pin: "1234",
-      question: dictionary.en["What is the name of your first pet?"],
-      answer: "lucky",
-    } as SecuritySettings,
-    "ncdc_security_v3"
-  ); // Note: Added 'as SecuritySettings' cast for useStickyState return
+  // 🔥 TS2558 FIX: useStickyState is now generic, we can remove the complex tuple type argument
+  const [securitySettings, setSecuritySettings] =
+    useStickyState<SecuritySettings>(
+      {
+        pin: "1234",
+        question: dictionary.en["What is the name of your first pet?"],
+        answer: "lucky",
+      },
+      "ncdc_security_v3"
+    );
 
   // Rate State
   const [rates, setRates] = useStickyState(
