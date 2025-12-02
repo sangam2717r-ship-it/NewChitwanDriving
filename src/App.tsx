@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react"; // 🔥 RECAPTCHA FIX: Added useRef
 import {
   Shield,
   Lock,
@@ -43,6 +43,7 @@ import {
   getAuth,
   signInWithPhoneNumber,
   onAuthStateChanged,
+  RecaptchaVerifier, // 🔥 RECAPTCHA FIX: Imported RecaptchaVerifier
 } from "firebase/auth";
 import {
   getFirestore,
@@ -825,7 +826,8 @@ const Navbar = ({ setView, activeView, language, setLanguage }: any) => {
   );
 };
 
-const BookingView = ({ onAddBooking, rates, lang }: any) => {
+// 🔥 RECAPTCHA FIX: Added recaptchaVerifier prop
+const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
   const [tab, setTab] = useState("new");
 
   const [duration, setDuration] = useState("15 Days");
@@ -897,19 +899,41 @@ const BookingView = ({ onAddBooking, rates, lang }: any) => {
       setError(T("Please enter valid name and phone number", lang));
       return;
     }
+    // 🔥 RECAPTCHA FIX: Ensure the verifier is ready before proceeding
+    if (!recaptchaVerifier) {
+      setError("Recaptcha verification not ready. Please try again.");
+      return;
+    }
+
     setError("");
     setLoading(true);
 
     try {
-      const result = await signInWithPhoneNumber(auth, clientPhone);
+      // 🔥 RECAPTCHA FIX: Pass the recaptchaVerifier as the third argument
+      const result = await signInWithPhoneNumber(
+        auth,
+        clientPhone,
+        recaptchaVerifier
+      );
+
       setConfirmationResult(result as any);
       setStep("otp");
       setLoading(false);
-    } catch (err) {
-      console.warn("SMS Failed. Using Sim.");
+
+      // If the app is hosted on Netlify or a development environment,
+      // the SMS may still fail, requiring the manual '123456' test code.
+      // We keep the simulation fallback for resilience.
+    } catch (err: any) {
+      console.warn("SMS Failed or Recaptcha Error. Falling back to Sim Mode.");
+
+      // If the real SMS fails (e.g., in a preview environment), we trigger simulation mode.
       setSimulationMode(true);
       setStep("otp");
       setLoading(false);
+      // 🔥 RECAPTCHA FIX: Reset recaptcha to allow re-verification if the user goes back and retries
+      if (recaptchaVerifier && recaptchaVerifier.clear) {
+        recaptchaVerifier.clear();
+      }
       alert(
         `${T("SIMULATION MODE (Real SMS blocked in Preview)", lang)}.\n\n${T(
           "Use code:",
@@ -1486,6 +1510,7 @@ const BookingView = ({ onAddBooking, rates, lang }: any) => {
                   </div>
                 </div>
                 {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+                {/* 🔥 RECAPTCHA FIX: The reCAPTCHA badge will appear here via the #recaptcha-container element in App.tsx */}
                 <button
                   onClick={requestOtp}
                   disabled={loading}
@@ -2903,6 +2928,34 @@ export default function App() {
     "ncdc_rates_v2"
   );
 
+  // 🔥 RECAPTCHA FIX: State and Ref for RecaptchaVerifier
+  const recaptchaRef = useRef(null);
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState<any>(null);
+
+  useEffect(() => {
+    if (auth && !recaptchaVerifier) {
+      try {
+        // The recaptcha-container must exist in the JSX for this to attach.
+        // Using size: 'invisible' to hide the element, showing only the badge.
+        const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+          size: "invisible",
+          callback: (response: any) => {
+            console.log("Recaptcha resolved, proceed with phone sign-in.");
+            // No need to manually trigger signInWithPhoneNumber here,
+            // it will be called when the user clicks 'Verify & Submit'
+          },
+          "expired-callback": () => {
+            console.log("Recaptcha expired, user needs to retry.");
+          },
+        });
+        // Render it to make the badge visible
+        verifier.render().then(() => setRecaptchaVerifier(verifier));
+      } catch (e) {
+        console.error("Recaptcha Init Error:", e);
+      }
+    }
+  }, [recaptchaVerifier]); // Only runs once on mount
+
   const handleLogin = (e: any) => {
     e.preventDefault();
     if (loginInput === securitySettings.pin) {
@@ -2989,12 +3042,14 @@ export default function App() {
         {view === "home" && <HomePage setView={setView} lang={language} />}
         {view === "about" && <AboutPage lang={language} />}
         {view === "contact" && <ContactPage lang={language} />}
+        {/* 🔥 RECAPTCHA FIX: Pass the verifier down to BookingView */}
         {view === "booking" && (
           <div className="max-w-4xl mx-auto p-4 pt-8">
             <BookingView
               onAddBooking={handleAddBooking}
               rates={rates}
               lang={language}
+              recaptchaVerifier={recaptchaVerifier}
             />
           </div>
         )}
@@ -3127,6 +3182,15 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* 🔥 RECAPTCHA FIX: This hidden container is crucial for reCAPTCHA to render. */}
+      {/* It will be automatically filled by the Firebase SDK and is set to invisible. */}
+      <div
+        id="recaptcha-container"
+        style={{ position: "absolute", bottom: 0, left: 0, zIndex: 1000 }}
+        ref={recaptchaRef}
+      />
+
       <footer className="bg-slate-900 text-slate-400 py-8 text-center text-sm">
         <p className="mb-2 text-white font-bold">
           New Chitwan Driving Training Centre
@@ -3134,7 +3198,7 @@ export default function App() {
         <p>{T("Bharatpur Address", language)}</p>
         <p className="text-xs mt-1">Email: cdriving47@gmail.com</p>
         <p className="mt-4 opacity-50">
-          &copy; 2024 All Rights Reserved. • PAN: 301569099
+          © 2024 All Rights Reserved. • PAN: 301569099
         </p>
       </footer>
     </div>
