@@ -11,8 +11,9 @@ import {
 } from 'firebase/auth';
 import { 
   getFirestore, collection, addDoc, onSnapshot, 
-  doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, where, getDocs 
-} from 'firebase/firestore';
+  doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, where, getDocs,
+  Timestamp // 🔥 TS2503 FIX: Import Timestamp for type usage
+} from 'firebase/firestore'; 
 
 // --- CONFIGURATION ---
 const firebaseConfig = {
@@ -21,7 +22,7 @@ const firebaseConfig = {
   projectId: "new-chitwan-driving",
   storageBucket: "new-chitwan-driving.firebaseapp.com",
   messagingSenderId: "538552281062",
-  appId: "1:538552281062:web:b6f756314ff756314ff53acch11827" // Using a dummy appId to avoid exposing real one
+  appId: "1:538552281062:web:b6f756314ff756314ff53acch11827" 
 };
 
 // --- INITIALIZATION ---
@@ -41,7 +42,7 @@ try {
 
 const appId = 'new-chitwan-v1'; 
 
-// 🔥 TS2339 FIX: Define the explicit type for Booking objects
+// 🔥 TS2503 FIX: Define the explicit type for Booking objects
 interface BookingItem {
   id: string;
   status: 'approved' | 'pending' | 'private' | 'rejected' | string;
@@ -57,7 +58,8 @@ interface BookingItem {
   type: 'public' | 'private';
   progress: number;
   notes?: string;
-  createdAt?: firebase.firestore.Timestamp; // Assuming Firestore timestamp type
+  // 🔥 TS2503 FIX: Use the imported Timestamp type directly
+  createdAt?: Timestamp; 
 }
 
 
@@ -261,7 +263,7 @@ const dictionary: { [key: string]: { [key: string]: string } } = {
         'Private (1 Day)': 'निजी (१ दिन)', 
         'Private Course': 'निजी कोर्स', 
         'Trial Preparation (1 Day)': 'परीक्षण तयारी (१ दिन)',
-        'PIN must be at least 4 digits': 'पिन कम्तीमा ४ अंकको हुनुपर्छ',
+        'PIN must be at least 4 digits': 'पिन कम्तीमा ४ अंकको हुनुपर्comment',
         'To be scheduled': 'तालिका बनाउन बाँकी',
         'Update PIN': 'पिन अपडेट गर्नुहोस्',
         'Our History': 'हाम्रो इतिहास', 
@@ -1077,7 +1079,7 @@ const ViewScheduleModal = ({ booking, onClose, lang }: any) => {
 
 const AdminPanel = ({ securitySettings, updateSecurity, onExit, rates, setRates, lang }: any) => {
   const [adminTab, setAdminTab] = useState('pending');
-  // 🔥 TS2339 FIX: Use the defined BookingItem interface
+  // 🔥 TS2503 FIX: Use the defined BookingItem interface
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [editingBooking, setEditingBooking] = useState<any>(null);
   const [scheduleModal, setScheduleModal] = useState<any>(null);
@@ -1207,7 +1209,7 @@ const AdminPanel = ({ securitySettings, updateSecurity, onExit, rates, setRates,
   };
 
   const pendingBookings = bookings.filter(b => b.status === 'pending');
-  // The type of 'b' here is now correctly BookingItem, resolving TS2339
+  // Type is correctly inferred as BookingItem[], resolving TS2339
   const activeBookings = bookings.filter(b => b.status === 'approved' || b.status === 'private'); 
 
   const requiredPDays = pDuration === '15 Days' ? 15 : (pDuration === '30 Days' ? 30 : 1);
