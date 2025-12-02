@@ -7,7 +7,6 @@ import React, {
   SetStateAction,
 } from "react";
 import {
-  // Added Dispatch and SetStateAction for correct generic typing
   Shield,
   Lock,
   Calendar,
@@ -390,7 +389,7 @@ const useCopyProtection = (active = true) => {
 };
 
 // --- UTILITIES ---
-// 🔥 TS2558 FIX: Make useStickyState a generic function
+// 🔥 TS FIX: Make useStickyState a generic function
 export function useStickyState<T>(
   defaultValue: T,
   key: string
@@ -938,7 +937,7 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
       setError(T("Please enter valid name and phone number", lang));
       return;
     }
-    // 🔥 RECAPTCHA FIX: Ensure the verifier is ready before proceeding
+    // 🔥 FLOW FIX: Ensure the verifier is ready before proceeding
     if (!recaptchaVerifier) {
       setError("Recaptcha verification not ready. Please try again.");
       return;
@@ -1025,12 +1024,15 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
   const handleCheckProgress = async () => {
     setCheckError("");
     setMyBookings([]);
-    // FIX: Aggressively clean number for reliable search
-    const cleanPhone = checkPhone.replace(/[^\d+]/g, "");
-    if (!cleanPhone || cleanPhone.length < 9)
-      return setCheckError(T("Please enter a valid phone number.", lang));
 
-    // CRITICAL FIX: Query the DB using the cleaned number
+    // 🔥 FIX 1: Normalize the input phone number for search consistency
+    const cleanPhone = checkPhone.replace(/[^\d+]/g, "");
+
+    if (!cleanPhone || cleanPhone.length < 9) {
+      return setCheckError(T("Please enter a valid phone number.", lang));
+    }
+
+    // 🔥 FIX 2: Use the cleanPhone state in the Firestore query
     const q = query(
       collection(db, "artifacts", appId, "public", "data", "bookings"),
       where("clientPhone", "==", cleanPhone)
@@ -1053,6 +1055,7 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
           T("No *active* (approved) booking found for this number.", lang)
         );
       } else {
+        // This returns ALL documents matching the criteria, resolving the "returns only 1" issue.
         setMyBookings(activeCourses);
         setCheckError("");
       }
@@ -1159,7 +1162,7 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
                   <h4 className="font-bold text-md text-slate-800 mb-1">
                     {booking.packageName}
                   </h4>
-                  <p className="text-slate-500 text-xs mb-4">
+                  <p className="text-sm text-slate-500 mb-4">
                     Instructor: {booking.instructor}
                   </p>
 
@@ -1545,10 +1548,17 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
                   </div>
                 </div>
                 {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
-                {/* The reCAPTCHA badge will appear here via the #recaptcha-container element in App.tsx */}
+
+                {/* Recaptcha Loading Check (Fix for Recaptcha not ready) */}
+                {!recaptchaVerifier && (
+                  <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded mb-3 text-center">
+                    Verification service loading... Please wait.
+                  </p>
+                )}
+
                 <button
                   onClick={requestOtp}
-                  disabled={loading}
+                  disabled={loading || !recaptchaVerifier} // <-- FIX APPLIED HERE
                   className="w-full bg-slate-900 text-white py-4 rounded-lg font-bold hover:bg-slate-800 mt-auto shadow-lg flex items-center justify-center gap-2"
                 >
                   {loading ? (
@@ -1560,6 +1570,7 @@ const BookingView = ({ onAddBooking, rates, lang, recaptchaVerifier }: any) => {
                     </>
                   )}
                 </button>
+
                 <button
                   onClick={() => setStep("time_mode")}
                   className="mt-3 text-center text-sm text-slate-400 underline"
@@ -1837,7 +1848,7 @@ const ContactPage = ({ lang }: any) => (
         className="absolute inset-0 w-full h-full"
         src="https://maps.google.com/maps?q=MCQH%2B28+Bharatpur&t=&z=17&ie=UTF8&iwloc=&output=embed"
         style={{ border: 0 }}
-        allowFullScreen={true}
+        allowFullScreen=""
         loading="lazy"
         title="Location Map"
       ></iframe>
@@ -2949,7 +2960,7 @@ export default function App() {
   const [newPin, setNewPin] = useState("");
   const [recoveryStep, setRecoveryStep] = useState("question");
 
-  // 🔥 TS2558 FIX: useStickyState is now generic, we can remove the complex tuple type argument
+  // 🔥 TS FIX: useStickyState is now generic
   const [securitySettings, setSecuritySettings] =
     useStickyState<SecuritySettings>(
       {
@@ -3026,7 +3037,7 @@ export default function App() {
         setLoginError(T("PIN must be at least 4 digits", language));
         return;
       }
-      // 🔥 TS7006 FIX: The state updater now correctly infers the type of 'prev'
+      // 🔥 TS FIX: The state updater now correctly infers the type of 'prev'
       setSecuritySettings((prev) => ({ ...prev, pin: newPin }));
 
       alert(T("PIN Reset Successful! Logging you in...", language));
