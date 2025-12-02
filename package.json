@@ -4,6 +4,9 @@
   "description": "React and TypeScript example starter project",
   "keywords": ["typescript", "react", "starter"],
   "main": "src/index.tsx",
+  "engines": {
+    "node": "18.x"
+  }
   "dependencies": {
     "loader-utils": "3.2.1",
     "react": "18.2.0",
@@ -25,7 +28,4 @@
     "eject": "react-scripts eject"
   },
   "browserslist": [">0.2%", "not dead", "not ie <= 11", "not op_mini all"]
-}
-"engines": {
-  "node": "18.x"
 }
