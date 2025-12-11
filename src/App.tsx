@@ -915,7 +915,7 @@ const AboutPage = ({ lang }: any) => {
               alt="Anita"
             />
             <div className="w-full h-full hidden flex-col items-center justify-center bg-gray-300 text-gray-500 absolute inset-0">
-              <User className="w-20 h-20 mb-2 opacity-50" />
+              <User className="w-20 h-30 mb-2 opacity-50" />
               <span className="text-xs font-bold text-center px-4">
                 Add 'mom.png'
               </span>
