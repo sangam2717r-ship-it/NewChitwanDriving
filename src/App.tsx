@@ -885,7 +885,7 @@ const AboutPage = ({ lang }: any) => {
               alt="Prem"
             />
             <div className="w-full h-full hidden flex-col items-center justify-center bg-gray-300 text-gray-500 absolute inset-0">
-              <User className="w-20 h-20 mb-2 opacity-50" />
+              <User className="w-20 h-30 mb-2 opacity-50" />
               <span className="text-xs font-bold text-center px-4">
                 Add 'dad.png'
               </span>
@@ -1691,7 +1691,7 @@ export default function App() {
         <p className="mb-2 text-white font-bold">
           New Chitwan Driving Training Centre
         </p>
-        <p>Bharatpur Height, Chitwan</p>
+        <p>Bharatpur Height, Chitwan(Same building as Eye Express)</p>
         <p className="text-xs mt-1">Email: cdriving47@gmail.com</p>
         <p className="mt-4 opacity-50">
           {t[lang as "en" | "np"].footer_rights} • PAN: 301569099
