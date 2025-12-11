@@ -119,8 +119,12 @@ const useCopyProtection = (active = true) => {
 };
 
 // --- UTILITIES ---
-const useStickyState = (defaultValue: any, key: string) => {
-  const [value, setValue] = useState(() => {
+// FIX: Added generic <T> to properly handle state types and avoid "any" errors
+function useStickyState<T>(
+  defaultValue: T,
+  key: string
+): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [value, setValue] = useState<T>(() => {
     try {
       const stickyValue = window.localStorage.getItem(key);
       return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
@@ -132,7 +136,7 @@ const useStickyState = (defaultValue: any, key: string) => {
     window.localStorage.setItem(key, JSON.stringify(value));
   }, [key, value]);
   return [value, setValue];
-};
+}
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("en-NP", {
@@ -953,7 +957,7 @@ const ContactPage = () => (
         className="absolute inset-0 w-full h-full"
         src="https://maps.google.com/maps?q=MCQH%2B28+Bharatpur&t=&z=17&ie=UTF8&iwloc=&output=embed"
         style={{ border: 0 }}
-        allowFullScreen={true}
+        allowFullScreen=""
         loading="lazy"
         title="Location Map"
       ></iframe>
@@ -1659,6 +1663,7 @@ export default function App() {
     }
   };
 
+  // FIX: Type 'prev' explicitly as 'any' to fix the TS7006 error
   const handleRecover = (e: any) => {
     e.preventDefault();
     if (recoveryStep === "question") {
@@ -1676,7 +1681,8 @@ export default function App() {
         setLoginError("PIN must be at least 4 digits");
         return;
       }
-      setSecuritySettings((prev) => ({ ...prev, pin: newPin }));
+      // FIXED LINE BELOW
+      setSecuritySettings((prev: any) => ({ ...prev, pin: newPin }));
       alert("PIN Reset Successful! Logging you in...");
       setView("admin");
       setRecoveryStep("question");
@@ -1686,8 +1692,9 @@ export default function App() {
     }
   };
 
+  // FIX: Type 'prev' explicitly as 'any' to fix the TS7006 error
   const updateSecurity = (field: string, value: string) => {
-    setSecuritySettings((prev) => ({ ...prev, [field]: value }));
+    setSecuritySettings((prev: any) => ({ ...prev, [field]: value }));
   };
 
   const handleAddBooking = async (data: any) => {
