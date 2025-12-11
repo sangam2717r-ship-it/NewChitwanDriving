@@ -14,6 +14,8 @@ import {
   User,
   FileText,
   RefreshCcw,
+  Eye,
+  EyeOff,
   Menu,
   X,
   Users,
@@ -30,6 +32,7 @@ import {
   Key,
   Mail,
   Save,
+  XCircle,
   Search,
   Globe,
 } from "lucide-react";
@@ -38,6 +41,7 @@ import {
   getAuth,
   RecaptchaVerifier,
   signInWithPhoneNumber,
+  onAuthStateChanged,
 } from "firebase/auth";
 import {
   getFirestore,
@@ -63,6 +67,83 @@ const firebaseConfig = {
   messagingSenderId: "538552281062",
   appId: "1:538552281062:web:b6f756314ff53acch11827",
 };
+
+// --- INITIALIZATION ---
+let auth: any = {};
+let db: any = {};
+let firebaseError: string | null = null;
+
+try {
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  try {
+    auth.useDeviceLanguage();
+  } catch (e: any) {}
+  db = getFirestore(app);
+} catch (err: any) {
+  console.error("Firebase Init Error:", err);
+  firebaseError = err.message;
+}
+
+const appId = "new-chitwan-v1";
+
+// --- SECURITY HOOK (Restored) ---
+const useCopyProtection = (active: boolean = true) => {
+  useEffect(() => {
+    const preventContext = (e: any) => {
+      e.preventDefault();
+      return false;
+    };
+    const preventKeys = (e: any) => {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        ["c", "s", "p", "u", "a"].includes(e.key.toLowerCase())
+      ) {
+        e.preventDefault();
+      }
+      if (e.key === "F12") e.preventDefault();
+    };
+    const preventDrag = (e: any) => e.preventDefault();
+
+    if (!active) return;
+
+    document.addEventListener("contextmenu", preventContext);
+    document.addEventListener("keydown", preventKeys);
+    document.addEventListener("dragstart", preventDrag);
+
+    return () => {
+      document.removeEventListener("contextmenu", preventContext);
+      document.removeEventListener("keydown", preventKeys);
+      document.removeEventListener("dragstart", preventDrag);
+    };
+  }, [active]);
+};
+
+// --- UTILITIES ---
+function useStickyState<T>(
+  defaultValue: T,
+  key: string
+): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const stickyValue = window.localStorage.getItem(key);
+      return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
+    } catch (e) {
+      return defaultValue;
+    }
+  });
+  useEffect(() => {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+  return [value, setValue];
+}
+
+const formatPrice = (price: number) =>
+  new Intl.NumberFormat("en-NP", {
+    style: "currency",
+    currency: "NPR",
+    minimumFractionDigits: 0,
+  }).format(price);
 
 // --- TRANSLATIONS ---
 const t = {
@@ -114,7 +195,6 @@ const t = {
     email_title: "Email",
     directions: "Get Directions (Google Maps)",
     footer_rights: "All Rights Reserved",
-    // Options
     opt_1day: "1 Day (Trial)",
     opt_15days: "15 Days",
     opt_30days: "30 Days",
@@ -169,7 +249,6 @@ const t = {
     email_title: "इमेल",
     directions: "गुगल म्याप हेर्नुहोस्",
     footer_rights: "सर्वाधिकार सुरक्षित",
-    // Options
     opt_1day: "१ दिन (ट्रायल)",
     opt_15days: "१५ दिन",
     opt_30days: "३० दिन",
@@ -177,51 +256,6 @@ const t = {
     opt_60mins: "६० मिनेट",
   },
 };
-
-// --- INITIALIZATION ---
-let auth: any = {};
-let db: any = {};
-let firebaseError: string | null = null;
-
-try {
-  const app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  try {
-    auth.useDeviceLanguage();
-  } catch (e: any) {}
-  db = getFirestore(app);
-} catch (err: any) {
-  console.error("Firebase Init Error:", err);
-  firebaseError = err.message;
-}
-
-const appId = "new-chitwan-v1";
-
-// --- UTILITIES ---
-function useStickyState<T>(
-  defaultValue: T,
-  key: string
-): [T, React.Dispatch<React.SetStateAction<T>>] {
-  const [value, setValue] = useState<T>(() => {
-    try {
-      const stickyValue = window.localStorage.getItem(key);
-      return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
-    } catch (e) {
-      return defaultValue;
-    }
-  });
-  useEffect(() => {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  }, [key, value]);
-  return [value, setValue];
-}
-
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat("en-NP", {
-    style: "currency",
-    currency: "NPR",
-    minimumFractionDigits: 0,
-  }).format(price);
 
 // --- COMPONENTS ---
 
@@ -258,7 +292,6 @@ const Navbar = ({ setView, activeView, lang, setLang }: any) => {
           </div>
 
           <div className="hidden md:flex items-center space-x-1">
-            {/* LANGUAGE TOGGLE */}
             <button
               onClick={() => setLang(lang === "en" ? "np" : "en")}
               className="mr-4 flex items-center gap-1 bg-red-950 px-3 py-1 rounded-full text-xs font-bold border border-red-800 hover:bg-black transition"
