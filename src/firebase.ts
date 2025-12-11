@@ -10,7 +10,7 @@ const firebaseConfig = {
   storageBucket: "new-chitwan-driving.firebasestorage.app",
   messagingSenderId: "538552281062",
   appId: "1:538552281062:web:b6f756314ff53accb11827",
-  measurementId: "G-QRT5W9H4D6"
+  measurementId: "G-QRT5W9H4D6",
 };
 
 // Initialize Firebase
