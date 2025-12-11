@@ -595,7 +595,7 @@ const BookingView = ({ onAddBooking, rates, lang }: any) => {
        // Filter down to only approved/private bookings for active progress display - BUT show all found for debugging if needed, currently filtered for active courses
        const courses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
        // Filter to show user active courses
-       const activeCourses = courses.filter(booking => booking.status === 'approved' || booking.status === 'private');
+       const activeCourses = courses.filter((booking: any) => booking.status === 'approved' || booking.status === 'private');
        
        if (activeCourses.length === 0) {
             setCheckError(T("No active (approved) booking found for this number.", lang));
