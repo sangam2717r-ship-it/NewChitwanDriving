@@ -37,11 +37,7 @@ import {
   Globe,
 } from "lucide-react";
 import { initializeApp } from "firebase/app";
-import {
-  getAuth,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-} from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import {
   getFirestore,
   collection,
@@ -267,7 +263,6 @@ const CustomCalendar = ({
       if (maxSelection === 1) newDates = [dateString]; // Single select mode
       else newDates = [...selectedDates, dateString]; // Multi select mode
     }
-    // Sort dates
     newDates.sort();
     setSelectedDates(newDates);
   };
@@ -1312,7 +1307,7 @@ const AdminPanel = ({
                 : "text-gray-600"
             }`}
           >
-            <Calendar className="w-4 h-4" /> Active
+            <CalIcon className="w-4 h-4" /> Active
           </button>
           <button
             onClick={() => setAdminTab("private")}
