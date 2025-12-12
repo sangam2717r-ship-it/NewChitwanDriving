@@ -173,7 +173,7 @@ const t = {
     email_title: "इमेल",
     directions: "गुगल म्याप हेर्नुहोस्",
     footer_rights: "सर्वाधिकार सुरक्षित",
-    select_date: "कक्षाको समय तालिका",
+    select_date: "मिति छान्नुहोस्",
     pref_time: "समय छान्नुहोस्",
     opt_1day: "१ दिन (ट्रायल)",
     opt_15days: "१५ दिन",
@@ -227,8 +227,38 @@ const formatPrice = (price: number) =>
     minimumFractionDigits: 0,
   }).format(price);
 
+// --- SECURITY HOOK (Restored) ---
+const useCopyProtection = (active = true) => {
+  useEffect(() => {
+    if (!active) return;
+    const preventContext = (e: any) => {
+      e.preventDefault();
+      return false;
+    };
+    const preventKeys = (e: any) => {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        ["c", "s", "p", "u", "a"].includes(e.key.toLowerCase())
+      ) {
+        e.preventDefault();
+      }
+      if (e.key === "F12") e.preventDefault();
+    };
+    const preventDrag = (e: any) => e.preventDefault();
+
+    document.addEventListener("contextmenu", preventContext);
+    document.addEventListener("keydown", preventKeys);
+    document.addEventListener("dragstart", preventDrag);
+
+    return () => {
+      document.removeEventListener("contextmenu", preventContext);
+      document.removeEventListener("keydown", preventKeys);
+      document.removeEventListener("dragstart", preventDrag);
+    };
+  }, [active]);
+};
+
 // --- CUSTOM CALENDAR COMPONENT ---
-// This is the component previously called CourseScheduler, now renamed to match usage
 interface Schedule {
   [date: string]: string;
 }
@@ -1236,7 +1266,13 @@ const AdminPanel = ({
       );
   };
   const sendConfirmation = (booking: any) => {
-    const msg = `Namaste ${booking.clientName},\n\nBooking Confirmed!\n\n*Package:* ${booking.packageName}\n\nPlease arrive 5 minutes early.\nContact: 9845048863`;
+    const msg = `Namaste ${
+      booking.clientName
+    },\n\nBooking Confirmed!\n\n*Package:* ${booking.packageName}\n*Dates:* ${
+      booking.date
+    }\n*Price:* ${formatPrice(
+      booking.price
+    )}\n\nPlease arrive 5 minutes early.\nContact: 9845048863`;
     window.open(
       `https://wa.me/${booking.clientPhone}?text=${encodeURIComponent(msg)}`,
       "_blank"
@@ -1927,6 +1963,7 @@ export default function App() {
         <p className="mt-4 opacity-50">
           {t[lang as "en" | "np"].footer_rights} • PAN: 301569099
         </p>
+        <p className="text-xs mt-1">DESIGNED BY SANGAM FOR NEW CHITWAN</p>
       </footer>
     </div>
   );
