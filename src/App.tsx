@@ -38,11 +38,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { initializeApp } from "firebase/app";
-import {
-  getAuth,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-} from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import {
   getFirestore,
   collection,
@@ -231,12 +227,13 @@ const formatPrice = (price: number) =>
     minimumFractionDigits: 0,
   }).format(price);
 
-// --- SCHEDULER COMPONENT (Calendar + Time Picker) ---
+// --- CUSTOM CALENDAR COMPONENT ---
+// This is the component previously called CourseScheduler, now renamed to match usage
 interface Schedule {
   [date: string]: string;
-} // { "2024-01-01": "7:00 AM" }
+}
 
-const CourseScheduler = ({
+const CustomCalendar = ({
   schedule,
   setSchedule,
   targetDays,
@@ -246,7 +243,7 @@ const CourseScheduler = ({
   targetDays: number;
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [pickingDate, setPickingDate] = useState<string | null>(null); // Date currently being edited
+  const [pickingDate, setPickingDate] = useState<string | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -287,12 +284,10 @@ const CourseScheduler = ({
       day
     ).padStart(2, "0")}`;
     if (schedule[dateString]) {
-      // If already selected, remove it (toggle off)
       const newSchedule = { ...schedule };
       delete newSchedule[dateString];
       setSchedule(newSchedule);
     } else {
-      // Open Time Picker Modal
       setPickingDate(dateString);
     }
   };
@@ -1452,7 +1447,7 @@ const AdminPanel = ({
                         </span>
                       </p>
                       <p className="text-sm text-gray-600">{b.packageName}</p>
-                      <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded mt-1 break-words whitespace-pre-wrap">
+                      <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded mt-1 break-words">
                         {b.date}
                       </div>
                     </div>
