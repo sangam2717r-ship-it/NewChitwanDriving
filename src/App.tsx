@@ -227,37 +227,6 @@ const formatPrice = (price: number) =>
     minimumFractionDigits: 0,
   }).format(price);
 
-// --- SECURITY HOOK (Restored) ---
-const useCopyProtection = (active = true) => {
-  useEffect(() => {
-    if (!active) return;
-    const preventContext = (e: any) => {
-      e.preventDefault();
-      return false;
-    };
-    const preventKeys = (e: any) => {
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        ["c", "s", "p", "u", "a"].includes(e.key.toLowerCase())
-      ) {
-        e.preventDefault();
-      }
-      if (e.key === "F12") e.preventDefault();
-    };
-    const preventDrag = (e: any) => e.preventDefault();
-
-    document.addEventListener("contextmenu", preventContext);
-    document.addEventListener("keydown", preventKeys);
-    document.addEventListener("dragstart", preventDrag);
-
-    return () => {
-      document.removeEventListener("contextmenu", preventContext);
-      document.removeEventListener("keydown", preventKeys);
-      document.removeEventListener("dragstart", preventDrag);
-    };
-  }, [active]);
-};
-
 // --- CUSTOM CALENDAR COMPONENT ---
 interface Schedule {
   [date: string]: string;
@@ -955,7 +924,8 @@ const HomePage = ({ setView, lang }: any) => {
   const T = t[lang as "en" | "np"];
   return (
     <div className="animate-fade-in">
-      <div className="relative h-80 md:h-96 bg-red-900 overflow-hidden flex items-center justify-center text-center px-4 select-none">
+      {/* UPDATED HERO: Removed fixed height, using min-h and flex */}
+      <div className="relative min-h-[60vh] bg-red-900 overflow-hidden flex flex-col justify-center items-center text-center px-4 py-20 select-none">
         <div className="absolute inset-0 bg-gradient-to-t from-red-950 via-red-900/80 to-red-900/60 z-10"></div>
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 z-0"></div>
         <div className="relative z-20 max-w-3xl">
@@ -1681,49 +1651,44 @@ const AdminPanel = ({
           {adminTab === "settings" && (
             <div className="max-w-md space-y-6">
               <h2 className="text-xl font-bold">Admin Settings</h2>
-              <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
-                <label className="text-xs font-bold text-gray-500">
-                  Security Question:
-                </label>
+              {/* UPDATED: Change PIN Section */}
+              <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-4">
+                <h3 className="font-bold text-gray-700 mb-2">
+                  Change Admin PIN
+                </h3>
                 <input
-                  className="w-full p-2 border rounded mb-2"
-                  value={tempQuestion}
-                  onChange={(e: any) => setTempQuestion(e.target.value)}
-                />
-                <label className="text-xs font-bold text-gray-500">
-                  Recovery Answer:
-                </label>
-                <input
+                  type="text"
                   className="w-full p-2 border rounded"
-                  value={tempAnswer}
-                  onChange={(e: any) => setTempAnswer(e.target.value)}
+                  value={securitySettings.pin}
+                  onChange={(e: any) => updateSecurity("pin", e.target.value)}
                 />
-                <button
-                  onClick={handleUpdateSecurity}
-                  className="w-full py-2 bg-indigo-600 text-white rounded text-sm font-bold mt-2"
-                >
-                  Update Security
-                </button>
               </div>
+
+              {/* UPDATED: Rate Settings - Loop through all available rates */}
               <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
-                <label className="text-xs font-bold text-gray-500">
-                  15 Days (60m)
-                </label>
-                <input
-                  type="number"
-                  className="w-full p-2 border rounded"
-                  value={tempRates["15 Days"]}
-                  onChange={(e: any) =>
-                    setTempRates({
-                      ...tempRates,
-                      "15 Days": Number(e.target.value),
-                    })
-                  }
-                />
+                <h3 className="font-bold text-gray-700 mb-2">Update Rates</h3>
+                {Object.keys(tempRates).map((key) => (
+                  <div key={key} className="mb-2">
+                    <label className="text-xs font-bold text-gray-500 block">
+                      {key}
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full p-2 border rounded"
+                      value={tempRates[key]}
+                      onChange={(e: any) =>
+                        setTempRates({
+                          ...tempRates,
+                          [key]: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                ))}
                 <button
                   onClick={() => {
                     setRates(tempRates);
-                    alert("Saved!");
+                    alert("Rates Saved!");
                   }}
                   className="w-full py-2 bg-red-900 text-white rounded text-sm font-bold mt-2"
                 >
