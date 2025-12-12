@@ -37,7 +37,11 @@ import {
   Globe,
 } from "lucide-react";
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+} from "firebase/auth";
 import {
   getFirestore,
   collection,
@@ -200,6 +204,39 @@ try {
 const appId = "new-chitwan-v1";
 
 // --- UTILS & COMPONENTS ---
+
+// [FIXED] Restored useCopyProtection hook which was missing in the last update
+const useCopyProtection = (active = true) => {
+  useEffect(() => {
+    const preventContext = (e: any) => {
+      e.preventDefault();
+      return false;
+    };
+    const preventKeys = (e: any) => {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        ["c", "s", "p", "u", "a"].includes(e.key.toLowerCase())
+      ) {
+        e.preventDefault();
+      }
+      if (e.key === "F12") e.preventDefault();
+    };
+    const preventDrag = (e: any) => e.preventDefault();
+
+    if (!active) return;
+
+    document.addEventListener("contextmenu", preventContext);
+    document.addEventListener("keydown", preventKeys);
+    document.addEventListener("dragstart", preventDrag);
+
+    return () => {
+      document.removeEventListener("contextmenu", preventContext);
+      document.removeEventListener("keydown", preventKeys);
+      document.removeEventListener("dragstart", preventDrag);
+    };
+  }, [active]);
+};
+
 function useStickyState<T>(
   defaultValue: T,
   key: string
@@ -263,6 +300,7 @@ const CustomCalendar = ({
       if (maxSelection === 1) newDates = [dateString]; // Single select mode
       else newDates = [...selectedDates, dateString]; // Multi select mode
     }
+    // Sort dates
     newDates.sort();
     setSelectedDates(newDates);
   };
@@ -1830,7 +1868,7 @@ export default function App() {
         <p className="mb-2 text-white font-bold">
           New Chitwan Driving Training Centre
         </p>
-        <p>Bharatpur Height, Chitwan(Same building as Eye Express)</p>
+        <p>Bharatpur Height, Chitwan (Same building as Eye Express)</p>
         <p className="text-xs mt-1">Email: cdriving47@gmail.com</p>
         <p className="mt-4 opacity-50">
           {t[lang as "en" | "np"].footer_rights} • PAN: 301569099
