@@ -227,6 +227,37 @@ const formatPrice = (price: number) =>
     minimumFractionDigits: 0,
   }).format(price);
 
+// --- SECURITY HOOK (RESTORED) ---
+const useCopyProtection = (active = true) => {
+  useEffect(() => {
+    if (!active) return;
+    const preventContext = (e: any) => {
+      e.preventDefault();
+      return false;
+    };
+    const preventKeys = (e: any) => {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        ["c", "s", "p", "u", "a"].includes(e.key.toLowerCase())
+      ) {
+        e.preventDefault();
+      }
+      if (e.key === "F12") e.preventDefault();
+    };
+    const preventDrag = (e: any) => e.preventDefault();
+
+    document.addEventListener("contextmenu", preventContext);
+    document.addEventListener("keydown", preventKeys);
+    document.addEventListener("dragstart", preventDrag);
+
+    return () => {
+      document.removeEventListener("contextmenu", preventContext);
+      document.removeEventListener("keydown", preventKeys);
+      document.removeEventListener("dragstart", preventDrag);
+    };
+  }, [active]);
+};
+
 // --- CUSTOM CALENDAR COMPONENT ---
 interface Schedule {
   [date: string]: string;
