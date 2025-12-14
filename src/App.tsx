@@ -109,7 +109,7 @@ const t = {
     check_not_found: "No active booking found for this number.",
     history_title: "Driving History in Nepal",
     history_desc:
-      "From the first car introduced by Rana Prime Ministers to the modern highways of today, Nepal's driving history is rich and evolving.",
+      "Serving Bharatpur since April 3rd, 2003. New Chitwan Driving Training Centre was established with a mission to create safe, responsible, and skilled drivers.",
     edu_title: "Traffic Education & Mock Test",
     edu_subtitle:
       "Master the rules of the road and prepare for your Likhit exam.",
@@ -183,7 +183,7 @@ const t = {
     check_not_found: "यो नम्बरमा कुनै सक्रिय बुकिङ भेटिएन।",
     history_title: "नेपालमा सवारी इतिहास",
     history_desc:
-      "राणा प्रधानमन्त्रीहरूले भित्र्याएको पहिलो कार देखि आजका आधुनिक राजमार्गहरूसम्म।",
+      "२०६० साल देखि चितवनमा सेवारत। सुरक्षित र जिम्मेवार चालक उत्पादन गर्ने हाम्रो मुख्य लक्ष्य हो।",
     edu_title: "ट्राफिक शिक्षा र लिखित तयारी",
     edu_subtitle: "ट्राफिक नियम जान्नुहोस् र लिखित परीक्षाको तयारी गर्नुहोस्।",
     team_title: "हाम्रो टिम",
@@ -678,23 +678,176 @@ const Navbar = ({ setView, activeView, lang, setLang }: any) => {
   );
 };
 
+// --- RESTORED HOMEPAGE ---
+const HomePage = ({ setView, lang }: any) => {
+  const T = t[lang as "en" | "np"];
+  return (
+    <div className="animate-fade-in">
+      <div className="relative min-h-[60vh] bg-red-900 overflow-hidden flex flex-col justify-center items-center text-center px-4 py-20 select-none">
+        <div className="absolute inset-0 bg-gradient-to-t from-red-950 via-red-900/80 to-red-900/60 z-10"></div>
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 z-0"></div>
+        <div className="relative z-20 max-w-3xl">
+          <span className="inline-block py-1 px-3 rounded-full bg-white/10 text-white border border-white/20 text-xs font-bold uppercase tracking-wider mb-4">
+            Est. 2003
+          </span>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            {T.hero_title}
+          </h2>
+          <p className="text-red-100 text-lg mb-8">{T.hero_subtitle}</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => setView("booking")}
+              className="px-8 py-3 bg-white text-red-800 rounded-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 hover:bg-gray-100"
+            >
+              {T.hero_cta} <ChevronRight className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setView("contact")}
+              className="px-8 py-3 bg-red-800/50 hover:bg-red-800/70 text-white border border-red-400 rounded-lg font-bold shadow-lg transition-all"
+            >
+              {T.hero_contact}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-6 py-16 select-none">
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="bg-white p-6 rounded-xl shadow-md border-b-4 border-red-600">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600">
+              <Award className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">
+              {T.why_pass}
+            </h3>
+            <p className="text-gray-500">{T.why_pass_desc}</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-md border-b-4 border-red-600">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600">
+              <Users className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">
+              {T.why_expert}
+            </h3>
+            <p className="text-gray-500">{T.why_expert_desc}</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-md border-b-4 border-red-600">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600">
+              <Settings className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">
+              {T.why_safe}
+            </h3>
+            <p className="text-gray-500">{T.why_safe_desc}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- RESTORED ABOUT PAGE ---
+const AboutPage = ({ lang }: any) => {
+  const T = t[lang as "en" | "np"];
+  return (
+    <div className="max-w-4xl mx-auto px-6 py-12 animate-fade-in select-none">
+      <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-12">
+        <div className="bg-red-900 p-8 text-center">
+          <h2 className="text-3xl font-bold text-white mb-2">
+            {T.history_title}
+          </h2>
+        </div>
+        <div className="p-8 md:p-12">
+          <p className="text-lg text-gray-600 leading-relaxed mb-6">
+            {T.history_desc}
+          </p>
+          <div className="mt-8 flex items-center gap-2 text-sm font-mono text-gray-400 bg-gray-50 p-3 rounded inline-block">
+            <span>PAN No: 301569099</span>
+          </div>
+        </div>
+      </div>
+      <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
+        {T.team_title}
+      </h2>
+      <div className="grid md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden group border border-gray-100">
+          <div className="h-80 bg-gray-200 relative">
+            <img
+              src="./dad.png"
+              onError={(e: any) => {
+                e.target.style.display = "none";
+                e.target.nextSibling.style.display = "flex";
+              }}
+              className="w-full h-full object-cover object-top"
+              alt="Prem"
+            />
+            <div className="w-full h-full hidden flex-col items-center justify-center bg-gray-300 text-gray-500 absolute inset-0">
+              <User className="w-20 h-20 mb-2 opacity-50" />
+              <span className="text-xs font-bold text-center px-4">
+                Add 'dad.png'
+              </span>
+            </div>
+          </div>
+          <div className="p-6 text-center">
+            <h3 className="text-xl font-bold text-gray-900">
+              Prem Bahadur Gaire
+            </h3>
+            <p className="text-red-600 font-medium text-sm mb-2">
+              {T.role_proprietor}
+            </p>
+            <p className="text-gray-500 text-sm flex items-center justify-center gap-1">
+              <Phone className="w-3 h-3" /> 9845048863
+            </p>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden group border border-gray-100">
+          <div className="h-80 bg-gray-200 relative">
+            <img
+              src="./mom.png"
+              onError={(e: any) => {
+                e.target.style.display = "none";
+                e.target.nextSibling.style.display = "flex";
+              }}
+              className="w-full h-full object-cover object-top"
+              alt="Anita"
+            />
+            <div className="w-full h-full hidden flex-col items-center justify-center bg-gray-300 text-gray-500 absolute inset-0">
+              <User className="w-20 h-20 mb-2 opacity-50" />
+              <span className="text-xs font-bold text-center px-4">
+                Add 'mom.png'
+              </span>
+            </div>
+          </div>
+          <div className="p-6 text-center">
+            <h3 className="text-xl font-bold text-gray-900">Anita Gaire</h3>
+            <p className="text-red-600 font-medium text-sm mb-2">
+              {T.role_manager}
+            </p>
+            <p className="text-gray-500 text-sm flex items-center justify-center gap-1">
+              <Phone className="w-3 h-3" /> 9845278967
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- QUIZ VIEW (NEW) ---
 const QuizView = ({ lang, setView }: any) => {
   const T = t[lang as "en" | "np"];
   const [currentQ, setCurrentQ] = useState(0);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [isPracticeMode, setIsPracticeMode] = useState(true); // Default Practice
+  const [isPracticeMode, setIsPracticeMode] = useState(true);
   const [quizStarted, setQuizStarted] = useState(false);
 
   const handleAnswer = (optionIndex: number) => {
-    if (selectedOption !== null && isPracticeMode) return; // Prevent multi-click in practice
+    if (selectedOption !== null && isPracticeMode) return;
     setSelectedOption(optionIndex);
 
-    if (isPracticeMode) {
-      // Practice Mode: Show result instantly, no auto advance
-    } else {
-      // Exam Mode: Record score and advance
+    if (!isPracticeMode) {
       if (optionIndex === quizQuestions[currentQ].correct) setScore(score + 1);
       setTimeout(() => {
         if (currentQ + 1 < quizQuestions.length) {
@@ -814,7 +967,7 @@ const QuizView = ({ lang, setView }: any) => {
                       ? "bg-green-100 border-green-500 text-green-800"
                       : "bg-red-100 border-red-500 text-red-800";
                 } else {
-                  btnClass += "bg-red-50 border-red-500 text-red-800"; // Just show selected in exam mode
+                  btnClass += "bg-red-50 border-red-500 text-red-800";
                 }
               } else {
                 btnClass += "hover:bg-gray-50 border-gray-200 text-gray-700";
@@ -866,6 +1019,7 @@ const QuizView = ({ lang, setView }: any) => {
   );
 };
 
+// --- EDUCATION PAGE ---
 const EducationPage = ({ lang, setView }: any) => {
   const T = t[lang as "en" | "np"];
   return (
@@ -875,7 +1029,6 @@ const EducationPage = ({ lang, setView }: any) => {
         <p className="text-gray-500">{T.edu_subtitle}</p>
       </div>
 
-      {/* Mock Test CTA */}
       <div className="bg-gradient-to-r from-red-900 to-red-800 text-white rounded-2xl p-8 mb-16 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
         <div>
           <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
@@ -957,6 +1110,68 @@ const EducationPage = ({ lang, setView }: any) => {
             known for the '8' and 'U-turn' obstacles.
           </p>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// --- RESTORED CONTACT PAGE (MAPS) ---
+const ContactPage = ({ lang }: any) => {
+  const T = t[lang as "en" | "np"];
+  return (
+    <div className="max-w-4xl mx-auto px-6 py-12 animate-fade-in select-none">
+      <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 space-y-6">
+        <div className="flex items-start gap-4">
+          <div className="bg-red-100 p-3 rounded-full text-red-600">
+            <MapPin className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="font-bold text-gray-800">{T.addr_title}</p>
+            <p className="text-gray-600">{T.addr_desc}</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-4">
+          <div className="bg-red-100 p-3 rounded-full text-red-600">
+            <Phone className="w-5 h-5" />
+          </div>
+          <div className="space-y-2">
+            <p className="font-bold text-gray-800">{T.phone_title}</p>
+            <p className="text-gray-600 text-sm">Landline: 056-518289</p>
+            <p className="text-gray-600 text-sm">Anita Gaire: 9845278967</p>
+            <p className="text-gray-600 text-sm">Prem Gaire: 9845048863</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-4">
+          <div className="bg-red-100 p-3 rounded-full text-red-600">
+            <Mail className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="font-bold text-gray-800">{T.email_title}</p>
+            <a
+              href="mailto:cdriving47@gmail.com"
+              className="text-red-600 hover:underline text-sm"
+            >
+              cdriving47@gmail.com
+            </a>
+          </div>
+        </div>
+        <a
+          href="https://maps.app.goo.gl/ajFQJt3BAUP4dkCM8?g_st=ipc"
+          target="_blank"
+          className="block w-full text-center bg-red-900 text-white py-3 rounded-lg font-bold hover:bg-red-800 flex items-center justify-center gap-2"
+        >
+          <Map className="w-5 h-5" /> {T.directions}
+        </a>
+      </div>
+      <div className="bg-gray-200 rounded-xl overflow-hidden shadow-inner h-96 w-full relative mt-8">
+        <iframe
+          className="absolute inset-0 w-full h-full"
+          src="https://maps.google.com/maps?q=MCQH%2B28+Bharatpur&t=&z=17&ie=UTF8&iwloc=&output=embed"
+          style={{ border: 0 }}
+          allowFullScreen={true}
+          loading="lazy"
+          title="Location Map"
+        ></iframe>
       </div>
     </div>
   );
