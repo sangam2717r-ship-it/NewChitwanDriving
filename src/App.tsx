@@ -36,6 +36,11 @@ import {
   Search,
   Globe,
   XCircle,
+  BookOpen,
+  GraduationCap,
+  History,
+  PlayCircle,
+  HelpCircle,
 } from "lucide-react";
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -69,9 +74,9 @@ const t = {
   en: {
     nav_home: "Home",
     nav_book: "Book Training",
-    nav_about: "About Us",
+    nav_edu: "Education",
     nav_contact: "Contact",
-    nav_admin: "Admin Login",
+    nav_admin: "Admin",
     hero_title: "Learn to Drive with Confidence in Chitwan",
     hero_subtitle:
       "Professional instructors, modern vehicles, and a track record of success.",
@@ -102,9 +107,12 @@ const t = {
     check_placeholder: "Enter Phone Number",
     check_btn: "Search",
     check_not_found: "No active booking found for this number.",
-    history_title: "Our History",
+    history_title: "Driving History in Nepal",
     history_desc:
-      "Serving Bharatpur since April 3rd, 2003. New Chitwan Driving Training Centre was established with a mission to create safe, responsible, and skilled drivers.",
+      "From the first car introduced by Rana Prime Ministers to the modern highways of today, Nepal's driving history is rich and evolving.",
+    edu_title: "Traffic Education & Mock Test",
+    edu_subtitle:
+      "Master the rules of the road and prepare for your Likhit exam.",
     team_title: "Our Team",
     role_proprietor: "Proprietor & Instructor",
     role_manager: "Manager & Reception",
@@ -114,7 +122,7 @@ const t = {
     email_title: "Email",
     directions: "Get Directions (Google Maps)",
     footer_rights: "All Rights Reserved",
-    select_date: "Schedule Your Classes",
+    select_date: "Select Class Dates",
     pref_time: "Preferred Time",
     opt_1day: "1 Day (Trial)",
     opt_15days: "15 Days",
@@ -124,13 +132,25 @@ const t = {
     selected: "Selected",
     days: "days",
     continue: "Continue",
+    signs_mandatory: "Mandatory Signs",
+    signs_warning: "Warning Signs",
+    signs_info: "Informational",
+    likhit_prep: "Mock Written Test",
+    likhit_desc: "Practice with real questions from the DoTM 500 collection.",
+    start_quiz: "Start Mock Test",
+    practice_mode: "Practice Mode (Instant Feedback)",
+    exam_mode: "Exam Mode (Result at End)",
+    correct: "Correct!",
+    wrong: "Wrong!",
+    score: "Your Score",
+    restart: "Restart Test",
   },
   np: {
     nav_home: "गृहपृष्ठ",
     nav_book: "तालिम बुकिङ",
-    nav_about: "हाम्रो बारेमा",
+    nav_edu: "शिक्षा",
     nav_contact: "सम्पर्क",
-    nav_admin: "एडमिन लगइन",
+    nav_admin: "एडमिन",
     hero_title: "चितवनमा विश्वासका साथ ड्राइभिङ सिक्नुहोस्",
     hero_subtitle:
       "अनुभवी प्रशिक्षकहरू र आधुनिक सवारी साधनहरूको साथ सफल नतिजा।",
@@ -161,9 +181,11 @@ const t = {
     check_placeholder: "फोन नम्बर राख्नुहोस्",
     check_btn: "खोज्नुहोस्",
     check_not_found: "यो नम्बरमा कुनै सक्रिय बुकिङ भेटिएन।",
-    history_title: "हाम्रो इतिहास",
+    history_title: "नेपालमा सवारी इतिहास",
     history_desc:
-      "२०६० साल देखि चितवनमा सेवारत। सुरक्षित र जिम्मेवार चालक उत्पादन गर्ने हाम्रो मुख्य लक्ष्य हो।",
+      "राणा प्रधानमन्त्रीहरूले भित्र्याएको पहिलो कार देखि आजका आधुनिक राजमार्गहरूसम्म।",
+    edu_title: "ट्राफिक शिक्षा र लिखित तयारी",
+    edu_subtitle: "ट्राफिक नियम जान्नुहोस् र लिखित परीक्षाको तयारी गर्नुहोस्।",
     team_title: "हाम्रो टिम",
     role_proprietor: "प्रोप्राइटर र प्रशिक्षक",
     role_manager: "प्रबन्धक र रिसेप्सन",
@@ -173,7 +195,7 @@ const t = {
     email_title: "इमेल",
     directions: "गुगल म्याप हेर्नुहोस्",
     footer_rights: "सर्वाधिकार सुरक्षित",
-    select_date: "मिति छान्नुहोस्",
+    select_date: "कक्षाको मिति छान्नुहोस्",
     pref_time: "समय छान्नुहोस्",
     opt_1day: "१ दिन (ट्रायल)",
     opt_15days: "१५ दिन",
@@ -183,8 +205,98 @@ const t = {
     selected: "छानिएको",
     days: "दिन",
     continue: "अगाडि बढ्नुहोस्",
+    signs_mandatory: "अनिवार्य संकेतहरू",
+    signs_warning: "चेतावनी संकेतहरू",
+    signs_info: "जानकारीमूलक",
+    likhit_prep: "लिखित परीक्षा (Mock Test)",
+    likhit_desc:
+      "यातायात व्यवस्था विभागको ५०० प्रश्न सँगालोबाट अभ्यास गर्नुहोस्।",
+    start_quiz: "परीक्षा सुरु गर्नुहोस्",
+    practice_mode: "अभ्यास मोड (तुरुन्त उत्तर)",
+    exam_mode: "परीक्षा मोड (अन्तिम नतिजा)",
+    correct: "सही जवाफ!",
+    wrong: "गलत जवाफ!",
+    score: "तपाईंको प्राप्तांक",
+    restart: "फेरी प्रयास गर्नुहोस्",
   },
 };
+
+// --- MOCK TEST DATA (SAMPLE) ---
+const quizQuestions = [
+  {
+    id: 1,
+    q: {
+      en: "What should you do when you see a Zebra Crossing?",
+      np: "जेब्रा क्रसिङ देख्दा के गर्नुपर्छ?",
+    },
+    options: [
+      { en: "Speed up", np: "गति बढाउने" },
+      {
+        en: "Stop and give way to pedestrians",
+        np: "रोकेर पैदल यात्रीलाई जान दिने",
+      },
+      { en: "Honk loudly", np: "ठूलो स्वरले हर्न बजाउने" },
+      { en: "Overtake other cars", np: "अरु गाडीलाई ओभरटेक गर्ने" },
+    ],
+    correct: 1,
+  },
+  {
+    id: 2,
+    q: {
+      en: "Which side should you overtake from?",
+      np: "ओभरटेक कुन साइडबाट गर्नुपर्छ?",
+    },
+    options: [
+      { en: "Left side", np: "बायाँ साइडबाट" },
+      { en: "Right side", np: "दायाँ साइडबाट" },
+      { en: "Any side", np: "जुनसुकै साइडबाट" },
+      { en: "None of above", np: "माथिका कुनै पनि होइन" },
+    ],
+    correct: 1,
+  },
+  {
+    id: 3,
+    q: {
+      en: "What is the color of the number plate for private vehicles?",
+      np: "निजी सवारी साधनको नम्बर प्लेटको रङ कस्तो हुन्छ?",
+    },
+    options: [
+      { en: "Black with White letters", np: "कालोमा सेतो अक्षर" },
+      { en: "White with Red letters", np: "सेतोमा रातो अक्षर" },
+      { en: "Red with White letters", np: "रातोमा सेतो अक्षर" },
+      { en: "Green with White letters", np: "हरियोमा सेतो अक्षर" },
+    ],
+    correct: 2,
+  },
+  {
+    id: 4,
+    q: {
+      en: "When is it illegal to use a horn?",
+      np: "हर्न बजाउन कहिले निषेध छ?",
+    },
+    options: [
+      { en: "At night", np: "राति" },
+      { en: "In hospital/school zones", np: "अस्पताल र विद्यालय क्षेत्रमा" },
+      { en: "On highways", np: "राजमार्गमा" },
+      { en: "In traffic jams", np: "ट्राफिक जाममा" },
+    ],
+    correct: 1,
+  },
+  {
+    id: 5,
+    q: {
+      en: "What does a continuous white line in the middle of the road mean?",
+      np: "सडकको बीचमा कोरिएको निरन्तर सेतो रेखाले के जनाउँछ?",
+    },
+    options: [
+      { en: "You can overtake", np: "ओभरटेक गर्न मिल्छ" },
+      { en: "Do not cross the line", np: "रेखा काट्न पाइदैन" },
+      { en: "Parking allowed", np: "पार्किङ गर्न मिल्छ" },
+      { en: "Stop here", np: "यहाँ रोक्नुहोस्" },
+    ],
+    correct: 1,
+  },
+];
 
 // --- INITIALIZATION ---
 let auth: any = {};
@@ -227,7 +339,6 @@ const formatPrice = (price: number) =>
     minimumFractionDigits: 0,
   }).format(price);
 
-// --- SECURITY HOOK (RESTORED) ---
 const useCopyProtection = (active = true) => {
   useEffect(() => {
     if (!active) return;
@@ -245,11 +356,9 @@ const useCopyProtection = (active = true) => {
       if (e.key === "F12") e.preventDefault();
     };
     const preventDrag = (e: any) => e.preventDefault();
-
     document.addEventListener("contextmenu", preventContext);
     document.addEventListener("keydown", preventKeys);
     document.addEventListener("dragstart", preventDrag);
-
     return () => {
       document.removeEventListener("contextmenu", preventContext);
       document.removeEventListener("keydown", preventKeys);
@@ -313,11 +422,16 @@ const CustomCalendar = ({
     const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(
       day
     ).padStart(2, "0")}`;
+
     if (schedule[dateString]) {
       const newSchedule = { ...schedule };
       delete newSchedule[dateString];
       setSchedule(newSchedule);
     } else {
+      if (Object.keys(schedule).length >= targetDays) {
+        alert(`Limit reached: ${targetDays} days.`);
+        return;
+      }
       setPickingDate(dateString);
     }
   };
@@ -333,7 +447,6 @@ const CustomCalendar = ({
 
   return (
     <div className="select-none">
-      {/* Time Picker Modal */}
       {pickingDate && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
@@ -362,7 +475,6 @@ const CustomCalendar = ({
         </div>
       )}
 
-      {/* Calendar UI */}
       <div className="bg-white border rounded-lg p-4 shadow-sm mb-4">
         <div className="flex justify-between items-center mb-4">
           <button
@@ -439,7 +551,6 @@ const CustomCalendar = ({
         </div>
       </div>
 
-      {/* Selected List Preview */}
       {selectedCount > 0 && (
         <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto border border-gray-100">
           <h4 className="text-xs font-bold text-gray-500 mb-2 uppercase">
@@ -472,7 +583,7 @@ const Navbar = ({ setView, activeView, lang, setLang }: any) => {
   const navItems = [
     { id: "home", l: T.nav_home },
     { id: "booking", l: T.nav_book },
-    { id: "about", l: T.nav_about },
+    { id: "education", l: T.nav_edu },
     { id: "contact", l: T.nav_contact },
   ];
 
@@ -567,6 +678,290 @@ const Navbar = ({ setView, activeView, lang, setLang }: any) => {
   );
 };
 
+const QuizView = ({ lang, setView }: any) => {
+  const T = t[lang as "en" | "np"];
+  const [currentQ, setCurrentQ] = useState(0);
+  const [score, setScore] = useState(0);
+  const [showResult, setShowResult] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [isPracticeMode, setIsPracticeMode] = useState(true); // Default Practice
+  const [quizStarted, setQuizStarted] = useState(false);
+
+  const handleAnswer = (optionIndex: number) => {
+    if (selectedOption !== null && isPracticeMode) return; // Prevent multi-click in practice
+    setSelectedOption(optionIndex);
+
+    if (isPracticeMode) {
+      // Practice Mode: Show result instantly, no auto advance
+    } else {
+      // Exam Mode: Record score and advance
+      if (optionIndex === quizQuestions[currentQ].correct) setScore(score + 1);
+      setTimeout(() => {
+        if (currentQ + 1 < quizQuestions.length) {
+          setCurrentQ(currentQ + 1);
+          setSelectedOption(null);
+        } else {
+          setShowResult(true);
+        }
+      }, 500);
+    }
+  };
+
+  const nextQuestion = () => {
+    if (isPracticeMode && selectedOption === quizQuestions[currentQ].correct)
+      setScore(score + 1);
+    if (currentQ + 1 < quizQuestions.length) {
+      setCurrentQ(currentQ + 1);
+      setSelectedOption(null);
+    } else {
+      setShowResult(true);
+    }
+  };
+
+  const restartQuiz = () => {
+    setScore(0);
+    setCurrentQ(0);
+    setShowResult(false);
+    setSelectedOption(null);
+    setQuizStarted(false);
+  };
+
+  if (!quizStarted) {
+    return (
+      <div className="max-w-md mx-auto p-6 bg-white rounded-xl shadow-lg text-center my-10">
+        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <HelpCircle className="w-10 h-10 text-red-600" />
+        </div>
+        <h2 className="text-2xl font-bold mb-4">{T.likhit_prep}</h2>
+        <p className="text-gray-600 mb-8">{T.likhit_desc}</p>
+
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={() => {
+              setIsPracticeMode(true);
+              setQuizStarted(true);
+            }}
+            className="w-full py-4 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center justify-center gap-2"
+          >
+            <BookOpen className="w-5 h-5" /> {T.practice_mode}
+          </button>
+          <button
+            onClick={() => {
+              setIsPracticeMode(false);
+              setQuizStarted(true);
+            }}
+            className="w-full py-4 bg-red-800 text-white rounded-lg font-bold hover:bg-red-900 flex items-center justify-center gap-2"
+          >
+            <GraduationCap className="w-5 h-5" /> {T.exam_mode}
+          </button>
+        </div>
+        <button
+          onClick={() => setView("education")}
+          className="mt-6 text-gray-400 text-sm underline"
+        >
+          {T.back}
+        </button>
+      </div>
+    );
+  }
+
+  if (showResult) {
+    return (
+      <div className="max-w-md mx-auto p-8 bg-white rounded-xl shadow-lg text-center my-10">
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">{T.score}</h2>
+        <div className="text-6xl font-black text-red-600 mb-6">
+          {score} / {quizQuestions.length}
+        </div>
+        <p className="text-gray-600 mb-8">
+          {score > 3 ? "Great Job! You are ready." : "Keep practicing!"}
+        </p>
+        <button
+          onClick={restartQuiz}
+          className="w-full py-3 bg-red-700 text-white rounded-lg font-bold"
+        >
+          {T.restart}
+        </button>
+      </div>
+    );
+  }
+
+  const q = quizQuestions[currentQ];
+  const langKey = lang as "en" | "np";
+
+  return (
+    <div className="max-w-lg mx-auto p-4 my-8">
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-red-900 p-4 flex justify-between items-center text-white">
+          <span className="font-bold">
+            Q. {currentQ + 1} / {quizQuestions.length}
+          </span>
+          <span className="bg-red-800 px-2 py-1 rounded text-xs">
+            {isPracticeMode ? "Practice" : "Exam"}
+          </span>
+        </div>
+        <div className="p-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-6">
+            {q.q[langKey]}
+          </h3>
+          <div className="space-y-3">
+            {q.options.map((opt, idx) => {
+              let btnClass =
+                "w-full p-4 rounded-lg border text-left transition font-medium ";
+              if (selectedOption === idx) {
+                if (isPracticeMode) {
+                  btnClass +=
+                    idx === q.correct
+                      ? "bg-green-100 border-green-500 text-green-800"
+                      : "bg-red-100 border-red-500 text-red-800";
+                } else {
+                  btnClass += "bg-red-50 border-red-500 text-red-800"; // Just show selected in exam mode
+                }
+              } else {
+                btnClass += "hover:bg-gray-50 border-gray-200 text-gray-700";
+              }
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => handleAnswer(idx)}
+                  className={btnClass}
+                >
+                  <div className="flex justify-between items-center">
+                    <span>{opt[langKey]}</span>
+                    {isPracticeMode &&
+                      selectedOption === idx &&
+                      (idx === q.correct ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-red-600" />
+                      ))}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {isPracticeMode && selectedOption !== null && (
+            <div className="mt-6 pt-4 border-t">
+              <p
+                className={`font-bold mb-2 ${
+                  selectedOption === q.correct
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {selectedOption === q.correct ? T.correct : T.wrong}
+              </p>
+              <button
+                onClick={nextQuestion}
+                className="w-full py-3 bg-slate-800 text-white rounded-lg font-bold flex items-center justify-center gap-2"
+              >
+                {T.next} <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const EducationPage = ({ lang, setView }: any) => {
+  const T = t[lang as "en" | "np"];
+  return (
+    <div className="max-w-4xl mx-auto px-6 py-12 animate-fade-in select-none">
+      <div className="text-center mb-12">
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">{T.edu_title}</h2>
+        <p className="text-gray-500">{T.edu_subtitle}</p>
+      </div>
+
+      {/* Mock Test CTA */}
+      <div className="bg-gradient-to-r from-red-900 to-red-800 text-white rounded-2xl p-8 mb-16 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
+            <GraduationCap className="w-8 h-8 text-yellow-400" />{" "}
+            {T.likhit_prep}
+          </h3>
+          <p className="opacity-90 max-w-lg">{T.likhit_desc}</p>
+        </div>
+        <button
+          onClick={() => setView("quiz")}
+          className="px-8 py-3 bg-white text-red-900 rounded-full font-bold shadow-lg hover:bg-gray-100 transition flex items-center gap-2"
+        >
+          <PlayCircle className="w-5 h-5" /> {T.start_quiz}
+        </button>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-8 mb-12">
+        <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-red-600">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-red-100 p-3 rounded-full text-red-600">
+              <AlertOctagon className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-lg">{T.signs_mandatory}</h3>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            <div className="aspect-square bg-red-100 rounded-full flex items-center justify-center border-4 border-red-600 font-bold text-xs text-center">
+              STOP
+            </div>
+            <div className="aspect-square bg-white rounded-full flex items-center justify-center border-4 border-red-600 font-bold text-2xl">
+              🚫
+            </div>
+            <div className="aspect-square bg-blue-600 rounded-full flex items-center justify-center text-white text-xl">
+              ⬅️
+            </div>
+            <div className="aspect-square bg-white rounded-full flex items-center justify-center border-4 border-red-600 font-bold text-xl">
+              30
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-yellow-100 p-3 rounded-full text-yellow-600">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-lg">{T.signs_warning}</h3>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            <div className="aspect-square bg-white flex items-center justify-center border-4 border-red-600 font-bold text-xl rotate-45 transform origin-center scale-75">
+              ⚠️
+            </div>
+            <div className="aspect-square bg-white flex items-center justify-center border-4 border-red-600 font-bold text-xl rotate-45 transform origin-center scale-75">
+              ⛰️
+            </div>
+            <div className="aspect-square bg-white flex items-center justify-center border-4 border-red-600 font-bold text-xl rotate-45 transform origin-center scale-75">
+              🏫
+            </div>
+            <div className="aspect-square bg-white flex items-center justify-center border-4 border-red-600 font-bold text-xl rotate-45 transform origin-center scale-75">
+              🚦
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-center">
+        <h3 className="text-xl font-bold mb-4">{T.history_title}</h3>
+        <div className="bg-gray-100 p-6 rounded-xl text-left text-sm leading-relaxed text-gray-700">
+          <p className="mb-3">
+            <strong>1922 AD:</strong> The first car was introduced in Kathmandu
+            by Prince Edward of Britain.
+          </p>
+          <p className="mb-3">
+            <strong>1956 AD:</strong> The Tribhuvan Highway (Byroad) connected
+            Kathmandu to the rest of the world.
+          </p>
+          <p>
+            <strong>Today:</strong> Obtaining a license involves a rigorous
+            'Likhit' (Written) and 'Trial' (Practical) exam system, famously
+            known for the '8' and 'U-turn' obstacles.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const BookingView = ({ onAddBooking, rates, lang }: any) => {
   const T = t[lang as "en" | "np"];
   const [tab, setTab] = useState("new");
@@ -574,7 +969,6 @@ const BookingView = ({ onAddBooking, rates, lang }: any) => {
   const [dailyTime, setDailyTime] = useState("60 Mins");
   const [currentPrice, setCurrentPrice] = useState(rates["15 Days"]);
 
-  // SCHEDULE STATE (Dictionary: { "2024-01-01": "7:00 AM", ... })
   const [schedule, setSchedule] = useState<{ [key: string]: string }>({});
 
   const [clientName, setClientName] = useState("");
@@ -597,7 +991,7 @@ const BookingView = ({ onAddBooking, rates, lang }: any) => {
       base =
         dailyTime === "60 Mins" ? rates["30 Days"] : rates["30 Days (30m)"];
     setCurrentPrice(base);
-    setSchedule({}); // Reset on duration change
+    setSchedule({});
   }, [duration, dailyTime, rates]);
 
   const handleSubmitBooking = async () => {
@@ -606,7 +1000,6 @@ const BookingView = ({ onAddBooking, rates, lang }: any) => {
       return;
     }
 
-    // SERIALIZE SCHEDULE TO STRING FOR STORAGE
     const scheduleString = Object.entries(schedule)
       .sort()
       .map(([date, time]) => `${date} @ ${time}`)
@@ -623,7 +1016,7 @@ const BookingView = ({ onAddBooking, rates, lang }: any) => {
         packageName: pkgName,
         duration,
         dailyTime,
-        date: scheduleString, // Storing formatted schedule
+        date: scheduleString,
         price: currentPrice,
         instructor,
         type: "public",
@@ -949,223 +1342,6 @@ const BookingView = ({ onAddBooking, rates, lang }: any) => {
   );
 };
 
-// --- PAGES ---
-
-const HomePage = ({ setView, lang }: any) => {
-  const T = t[lang as "en" | "np"];
-  return (
-    <div className="animate-fade-in">
-      {/* UPDATED HERO: Removed fixed height, using min-h and flex */}
-      <div className="relative min-h-[60vh] bg-red-900 overflow-hidden flex flex-col justify-center items-center text-center px-4 py-20 select-none">
-        <div className="absolute inset-0 bg-gradient-to-t from-red-950 via-red-900/80 to-red-900/60 z-10"></div>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 z-0"></div>
-        <div className="relative z-20 max-w-3xl">
-          <span className="inline-block py-1 px-3 rounded-full bg-white/10 text-white border border-white/20 text-xs font-bold uppercase tracking-wider mb-4">
-            Est. 2003
-          </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            {T.hero_title}
-          </h2>
-          <p className="text-red-100 text-lg mb-8">{T.hero_subtitle}</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => setView("booking")}
-              className="px-8 py-3 bg-white text-red-800 rounded-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 hover:bg-gray-100"
-            >
-              {T.hero_cta} <ChevronRight className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setView("contact")}
-              className="px-8 py-3 bg-red-800/50 hover:bg-red-800/70 text-white border border-red-400 rounded-lg font-bold shadow-lg transition-all"
-            >
-              {T.hero_contact}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-6 py-16 select-none">
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="bg-white p-6 rounded-xl shadow-md border-b-4 border-red-600">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600">
-              <Award className="w-6 h-6" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
-              {T.why_pass}
-            </h3>
-            <p className="text-gray-500">{T.why_pass_desc}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md border-b-4 border-red-600">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600">
-              <Users className="w-6 h-6" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
-              {T.why_expert}
-            </h3>
-            <p className="text-gray-500">{T.why_expert_desc}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md border-b-4 border-red-600">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600">
-              <Settings className="w-6 h-6" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
-              {T.why_safe}
-            </h3>
-            <p className="text-gray-500">{T.why_safe_desc}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const AboutPage = ({ lang }: any) => {
-  const T = t[lang as "en" | "np"];
-  return (
-    <div className="max-w-4xl mx-auto px-6 py-12 animate-fade-in select-none">
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-12">
-        <div className="bg-red-900 p-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {T.history_title}
-          </h2>
-        </div>
-        <div className="p-8 md:p-12">
-          <p className="text-lg text-gray-600 leading-relaxed mb-6">
-            {T.history_desc}
-          </p>
-          <div className="mt-8 flex items-center gap-2 text-sm font-mono text-gray-400 bg-gray-50 p-3 rounded inline-block">
-            <span>PAN No: 301569099</span>
-          </div>
-        </div>
-      </div>
-      <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-        {T.team_title}
-      </h2>
-      <div className="grid md:grid-cols-2 gap-8">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden group border border-gray-100">
-          <div className="h-80 bg-gray-200 relative">
-            <img
-              src="./dad.png"
-              onError={(e: any) => {
-                e.target.style.display = "none";
-                e.target.nextSibling.style.display = "flex";
-              }}
-              className="w-full h-full object-cover object-top"
-              alt="Prem"
-            />
-            <div className="w-full h-full hidden flex-col items-center justify-center bg-gray-300 text-gray-500 absolute inset-0">
-              <User className="w-20 h-20 mb-2 opacity-50" />
-              <span className="text-xs font-bold text-center px-4">
-                Add 'dad.png'
-              </span>
-            </div>
-          </div>
-          <div className="p-6 text-center">
-            <h3 className="text-xl font-bold text-gray-900">
-              Prem Bahadur Gaire
-            </h3>
-            <p className="text-red-600 font-medium text-sm mb-2">
-              {T.role_proprietor}
-            </p>
-            <p className="text-gray-500 text-sm flex items-center justify-center gap-1">
-              <Phone className="w-3 h-3" /> 9845048863
-            </p>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden group border border-gray-100">
-          <div className="h-80 bg-gray-200 relative">
-            <img
-              src="./mom.png"
-              onError={(e: any) => {
-                e.target.style.display = "none";
-                e.target.nextSibling.style.display = "flex";
-              }}
-              className="w-full h-full object-cover object-top"
-              alt="Anita"
-            />
-            <div className="w-full h-full hidden flex-col items-center justify-center bg-gray-300 text-gray-500 absolute inset-0">
-              <User className="w-20 h-20 mb-2 opacity-50" />
-              <span className="text-xs font-bold text-center px-4">
-                Add 'mom.png'
-              </span>
-            </div>
-          </div>
-          <div className="p-6 text-center">
-            <h3 className="text-xl font-bold text-gray-900">Anita Gaire</h3>
-            <p className="text-red-600 font-medium text-sm mb-2">
-              {T.role_manager}
-            </p>
-            <p className="text-gray-500 text-sm flex items-center justify-center gap-1">
-              <Phone className="w-3 h-3" /> 9845278967
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ContactPage = ({ lang }: any) => {
-  const T = t[lang as "en" | "np"];
-  return (
-    <div className="max-w-4xl mx-auto px-6 py-12 animate-fade-in select-none">
-      <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 space-y-6">
-        <div className="flex items-start gap-4">
-          <div className="bg-red-100 p-3 rounded-full text-red-600">
-            <MapPin className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="font-bold text-gray-800">{T.addr_title}</p>
-            <p className="text-gray-600">{T.addr_desc}</p>
-          </div>
-        </div>
-        <div className="flex items-start gap-4">
-          <div className="bg-red-100 p-3 rounded-full text-red-600">
-            <Phone className="w-5 h-5" />
-          </div>
-          <div className="space-y-2">
-            <p className="font-bold text-gray-800">{T.phone_title}</p>
-            <p className="text-gray-600 text-sm">Landline: 056-518289</p>
-            <p className="text-gray-600 text-sm">Anita Gaire: 9845278967</p>
-            <p className="text-gray-600 text-sm">Prem Gaire: 9845048863</p>
-          </div>
-        </div>
-        <div className="flex items-start gap-4">
-          <div className="bg-red-100 p-3 rounded-full text-red-600">
-            <Mail className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="font-bold text-gray-800">{T.email_title}</p>
-            <a
-              href="mailto:cdriving47@gmail.com"
-              className="text-red-600 hover:underline text-sm"
-            >
-              cdriving47@gmail.com
-            </a>
-          </div>
-        </div>
-        <a
-          href="https://maps.app.goo.gl/ajFQJt3BAUP4dkCM8?g_st=ipc"
-          target="_blank"
-          className="block w-full text-center bg-red-900 text-white py-3 rounded-lg font-bold hover:bg-red-800 flex items-center justify-center gap-2"
-        >
-          <Map className="w-5 h-5" /> {T.directions}
-        </a>
-      </div>
-      <div className="bg-gray-200 rounded-xl overflow-hidden shadow-inner h-96 w-full relative mt-8">
-        <iframe
-          className="absolute inset-0 w-full h-full"
-          src="https://maps.google.com/maps?q=MCQH%2B28+Bharatpur&t=&z=17&ie=UTF8&iwloc=&output=embed"
-          style={{ border: 0 }}
-          allowFullScreen={true}
-          loading="lazy"
-          title="Location Map"
-        ></iframe>
-      </div>
-    </div>
-  );
-};
-
 const AdminPanel = ({
   securitySettings,
   updateSecurity,
@@ -1276,6 +1452,15 @@ const AdminPanel = ({
     )}\n\nPlease arrive 5 minutes early.\nContact: 9845048863`;
     window.open(
       `https://wa.me/${booking.clientPhone}?text=${encodeURIComponent(msg)}`,
+      "_blank"
+    );
+  };
+
+  // New: Send simple SMS/WhatsApp without saving
+  const sendTestMessage = (booking: any) => {
+    const msg = `Namaste ${booking.clientName}, this is a message from New Chitwan Driving. Please contact us.`;
+    window.open(
+      `sms:${booking.clientPhone}?body=${encodeURIComponent(msg)}`,
       "_blank"
     );
   };
@@ -1608,10 +1793,16 @@ const AdminPanel = ({
                         Call
                       </a>
                       <button
+                        onClick={() => sendTestMessage(b)}
+                        className="px-3 py-1 bg-blue-100 text-blue-600 rounded text-xs font-bold hover:bg-blue-200 flex items-center gap-1"
+                      >
+                        <MessageCircle className="w-3 h-3" /> Msg
+                      </button>
+                      <button
                         onClick={() => sendConfirmation(b)}
                         className="px-3 py-1 bg-[#25D366] text-white rounded text-xs font-bold hover:opacity-90 flex items-center gap-1"
                       >
-                        <MessageCircle className="w-3 h-3" /> Send Info
+                        <CheckCircle className="w-3 h-3" /> Info
                       </button>
                     </div>
                   </div>
@@ -1682,7 +1873,7 @@ const AdminPanel = ({
           {adminTab === "settings" && (
             <div className="max-w-md space-y-6">
               <h2 className="text-xl font-bold">Admin Settings</h2>
-              {/* UPDATED: Change PIN Section */}
+
               <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-4">
                 <h3 className="font-bold text-gray-700 mb-2">
                   Change Admin PIN
@@ -1695,7 +1886,6 @@ const AdminPanel = ({
                 />
               </div>
 
-              {/* UPDATED: Rate Settings - Loop through all available rates */}
               <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
                 <h3 className="font-bold text-gray-700 mb-2">Update Rates</h3>
                 {Object.keys(tempRates).map((key) => (
@@ -1828,6 +2018,10 @@ export default function App() {
       <main className="flex-grow">
         {view === "home" && <HomePage setView={setView} lang={lang} />}
         {view === "about" && <AboutPage lang={lang} />}
+        {view === "education" && (
+          <EducationPage lang={lang} setView={setView} />
+        )}
+        {view === "quiz" && <QuizView lang={lang} setView={setView} />}
         {view === "contact" && <ContactPage lang={lang} />}
         {view === "booking" && (
           <div className="max-w-4xl mx-auto p-4 pt-8">
