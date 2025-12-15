@@ -847,7 +847,7 @@ const Navbar = ({ setView, activeView, lang, setLang }: any) => {
     { id: "booking", l: T.nav_book },
     { id: "education", l: T.nav_edu },
     { id: "likhit", l: T.nav_likhit },
-    { id: "about", l: T.nav_about }, // ADDED ABOUT
+    { id: "about", l: T.nav_about },
     { id: "contact", l: T.nav_contact },
   ];
 
@@ -952,7 +952,6 @@ const QuizView = ({ lang, setView }: any) => {
   const [quizStarted, setQuizStarted] = useState(false);
   const [shuffledQuestions, setShuffledQuestions] = useState(quizQuestions);
 
-  // Infinite Logic: Reshuffle when restarting in Practice Mode
   useEffect(() => {
     if (quizStarted) {
       setShuffledQuestions([...quizQuestions].sort(() => 0.5 - Math.random()));
@@ -981,9 +980,8 @@ const QuizView = ({ lang, setView }: any) => {
     )
       setScore(score + 1);
 
-    // Infinite Loop Logic for Practice Mode
+    // Infinite Logic
     if (isPracticeMode && currentQ + 1 >= shuffledQuestions.length) {
-      // Restart with new shuffle
       setShuffledQuestions([...quizQuestions].sort(() => 0.5 - Math.random()));
       setCurrentQ(0);
       setSelectedOption(null);
@@ -1196,6 +1194,378 @@ const EducationPage = ({ lang, setView }: any) => {
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+const BookingView = ({ onAddBooking, rates, lang }: any) => {
+  const T = t[lang as "en" | "np"];
+  const [tab, setTab] = useState("new");
+  const [duration, setDuration] = useState("15 Days");
+  const [dailyTime, setDailyTime] = useState("60 Mins");
+  const [currentPrice, setCurrentPrice] = useState(rates["15 Days"]);
+  const [schedule, setSchedule] = useState<{ [key: string]: string }>({});
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("+977 ");
+  const [instructor, setInstructor] = useState("Prem Bahadur Gaire");
+  const [step, setStep] = useState("customize");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [checkPhone, setCheckPhone] = useState("");
+  const [myBooking, setMyBooking] = useState<any>(null);
+  const [checkError, setCheckError] = useState("");
+
+  useEffect(() => {
+    let base = 0;
+    if (duration === "1 Day") base = rates["1 Day"];
+    else if (duration === "15 Days")
+      base =
+        dailyTime === "60 Mins" ? rates["15 Days"] : rates["15 Days (30m)"];
+    else
+      base =
+        dailyTime === "60 Mins" ? rates["30 Days"] : rates["30 Days (30m)"];
+    setCurrentPrice(base);
+    setSchedule({});
+  }, [duration, dailyTime, rates]);
+
+  const handleSubmitBooking = async () => {
+    if (!clientName || clientPhone.length < 10) {
+      setError("Invalid Details");
+      return;
+    }
+    const scheduleString = Object.entries(schedule)
+      .sort()
+      .map(([date, time]) => `${date} @ ${time}`)
+      .join("\n");
+    setError("");
+    setLoading(true);
+    try {
+      const pkgName =
+        duration === "1 Day" ? "Trial (1 Day)" : `${duration} (${dailyTime})`;
+      await onAddBooking({
+        clientName,
+        clientPhone,
+        packageName: pkgName,
+        duration,
+        dailyTime,
+        date: scheduleString,
+        price: currentPrice,
+        instructor,
+        type: "public",
+        status: "pending",
+        progress: 0,
+      });
+      setStep("done");
+      setLoading(false);
+    } catch (err) {
+      setLoading(false);
+      setError("Connection Error");
+    }
+  };
+
+  const handleCheckProgress = async () => {
+    setCheckError("");
+    setMyBooking(null);
+    if (!checkPhone) return;
+    const q = query(
+      collection(db, "artifacts", appId, "public", "data", "bookings"),
+      where("clientPhone", "==", checkPhone),
+      where("status", "==", "approved")
+    );
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) setCheckError(T.check_not_found);
+    else setMyBooking(snapshot.docs[0].data());
+  };
+
+  const getTargetDays = () =>
+    duration === "1 Day" ? 1 : duration === "15 Days" ? 15 : 30;
+
+  if (step === "done") {
+    return (
+      <div className="min-h-[500px] flex items-center justify-center bg-white rounded-xl shadow-xl p-8 text-center animate-fade-in">
+        <div className="max-w-md">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-green-600" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-800 mb-4">
+            {T.success_title}
+          </h2>
+          <p className="text-gray-600 mb-6">{T.success_msg}</p>
+          <button
+            onClick={() => {
+              setStep("customize");
+              setDuration("15 Days");
+              setSchedule({});
+            }}
+            className="px-6 py-3 bg-red-700 text-white rounded-lg font-bold"
+          >
+            {T.nav_book}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-xl flex flex-col min-h-[550px] border border-gray-100 animate-fade-in">
+      <div className="flex border-b">
+        <button
+          onClick={() => setTab("new")}
+          className={`flex-1 p-4 text-center font-bold ${
+            tab === "new"
+              ? "bg-red-50 text-red-700 border-b-2 border-red-700"
+              : "text-gray-500 hover:bg-gray-50"
+          }`}
+        >
+          {T.nav_book}
+        </button>
+        <button
+          onClick={() => setTab("check")}
+          className={`flex-1 p-4 text-center font-bold ${
+            tab === "check"
+              ? "bg-red-50 text-red-700 border-b-2 border-red-700"
+              : "text-gray-500 hover:bg-gray-50"
+          }`}
+        >
+          {T.check_title}
+        </button>
+      </div>
+      {tab === "check" && (
+        <div className="p-8 flex flex-col items-center justify-center h-full">
+          <h3 className="text-xl font-bold mb-4 text-gray-800">
+            {T.check_title}
+          </h3>
+          <div className="flex gap-2 w-full max-w-md mb-6">
+            <input
+              type="tel"
+              placeholder={T.check_placeholder}
+              className="flex-grow p-3 border rounded focus:border-red-500 outline-none"
+              value={checkPhone}
+              onChange={(e: any) => setCheckPhone(e.target.value)}
+            />
+            <button
+              onClick={handleCheckProgress}
+              className="bg-red-900 text-white px-6 rounded font-bold hover:bg-red-800"
+            >
+              {T.check_btn}
+            </button>
+          </div>
+          {checkError && <p className="text-red-500 mb-4">{checkError}</p>}
+          {myBooking && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 w-full max-w-md">
+              <h4 className="font-bold text-lg text-gray-800 mb-1">
+                {myBooking.clientName}
+              </h4>
+              <p className="text-gray-500 text-sm mb-4">
+                {myBooking.packageName}
+              </p>
+              <div className="mb-2 flex justify-between text-xs font-bold uppercase text-gray-400">
+                <span>Progress</span>
+                <span>
+                  Day {myBooking.progress || 0} /{" "}
+                  {myBooking.packageName.includes("30") ? 30 : 15}
+                </span>
+              </div>
+              <div className="h-4 bg-gray-200 rounded-full overflow-hidden mb-4">
+                <div
+                  className="h-full bg-green-500 transition-all"
+                  style={{
+                    width: `${
+                      ((myBooking.progress || 0) /
+                        (myBooking.packageName.includes("30") ? 30 : 15)) *
+                      100
+                    }%`,
+                  }}
+                ></div>
+              </div>
+              <div className="text-center p-3 bg-white rounded border border-gray-200 text-sm whitespace-pre-wrap">
+                {myBooking.date}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {tab === "new" && (
+        <div className="flex flex-col md:flex-row flex-grow">
+          <div className="md:w-1/2 p-6 bg-gray-50/50 border-r border-gray-100 flex flex-col">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              {T.book_title}
+            </h2>
+            <p className="text-gray-500 mb-6 text-sm">{T.book_subtitle}</p>
+            <div className="mb-6">
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                {T.duration}
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {["1 Day", "15 Days", "30 Days"].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDuration(d)}
+                    className={`p-3 rounded-lg text-sm font-bold transition-all ${
+                      duration === d
+                        ? "bg-red-700 text-white shadow-md"
+                        : "bg-white border border-gray-200 text-gray-600 hover:border-red-300"
+                    }`}
+                  >
+                    {d === "1 Day"
+                      ? T.opt_1day
+                      : d === "15 Days"
+                      ? T.opt_15days
+                      : T.opt_30days}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {duration !== "1 Day" && (
+              <div className="mb-6 animate-fade-in">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                  {T.daily_len}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {["30 Mins", "60 Mins"].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setDailyTime(t)}
+                      className={`p-3 rounded-lg text-sm font-bold transition-all ${
+                        dailyTime === t
+                          ? "bg-red-500 text-white shadow-md"
+                          : "bg-white border border-gray-200 text-gray-600 hover:border-red-300"
+                      }`}
+                    >
+                      {t === "30 Mins" ? T.opt_30mins : T.opt_60mins}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="mt-auto pt-6 border-t border-gray-200">
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-bold">
+                    {T.est_total}
+                  </p>
+                  <p className="text-3xl font-black text-gray-800">
+                    {formatPrice(currentPrice)}
+                  </p>
+                </div>
+                {step === "customize" && (
+                  <button
+                    onClick={() => setStep("date")}
+                    className="px-6 py-3 bg-red-700 text-white rounded-lg font-bold hover:bg-red-800 flex items-center gap-2"
+                  >
+                    {T.next} <ChevronRight className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="md:w-1/2 p-6 bg-white">
+            {step === "customize" && (
+              <div className="h-full flex flex-col items-center justify-center text-gray-400 text-center py-10 md:py-0">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <Settings className="w-8 h-8 opacity-20" />
+                </div>
+                <p>
+                  Configure your course on the left
+                  <br />
+                  to proceed.
+                </p>
+              </div>
+            )}
+            {step === "date" && (
+              <div className="animate-fade-in">
+                <h3 className="font-bold text-lg mb-4">{T.select_date}</h3>
+                <div className="mb-4">
+                  <CustomCalendar
+                    schedule={schedule}
+                    setSchedule={setSchedule}
+                    targetDays={getTargetDays()}
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    if (Object.keys(schedule).length === 0)
+                      alert("Please select at least one date.");
+                    else setStep("form");
+                  }}
+                  className="mt-2 w-full py-3 bg-red-700 text-white rounded-lg font-bold hover:bg-red-800 flex items-center justify-center gap-2"
+                >
+                  {T.continue} <ChevronRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setStep("customize")}
+                  className="mt-4 text-center text-sm text-gray-400 underline block w-full"
+                >
+                  {T.back}
+                </button>
+              </div>
+            )}
+            {step === "form" && (
+              <div className="animate-fade-in h-full flex flex-col">
+                <h3 className="font-bold text-lg mb-4">{T.verify_title}</h3>
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">
+                      Instructor
+                    </label>
+                    <select
+                      className="w-full p-3 border border-gray-300 rounded bg-white"
+                      value={instructor}
+                      onChange={(e: any) => setInstructor(e.target.value)}
+                    >
+                      <option>Prem Bahadur Gaire</option>
+                      <option>Other / Any Available</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-3 border border-gray-300 rounded outline-none focus:border-red-500"
+                      value={clientName}
+                      onChange={(e: any) => setClientName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">
+                      Mobile Number
+                    </label>
+                    <input
+                      type="tel"
+                      className="w-full p-3 border border-gray-300 rounded outline-none focus:border-red-500"
+                      value={clientPhone}
+                      onChange={(e: any) => setClientPhone(e.target.value)}
+                      placeholder="+977 98..."
+                    />
+                  </div>
+                </div>
+                {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+                <button
+                  onClick={handleSubmitBooking}
+                  disabled={loading}
+                  className="w-full bg-red-900 text-white py-4 rounded-lg font-bold hover:bg-red-800 mt-auto shadow-lg flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    "Saving..."
+                  ) : (
+                    <>
+                      <Smartphone className="w-4 h-4" /> {T.verify_btn}
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setStep("date")}
+                  className="mt-3 text-center text-sm text-gray-400 underline"
+                >
+                  {T.back}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
