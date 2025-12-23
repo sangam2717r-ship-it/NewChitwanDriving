@@ -2599,7 +2599,7 @@ export default function App() {
         <p className="mt-4 opacity-50">
           {t[lang as "en" | "np"].footer_rights} • PAN: 301569099
         </p>
-        <p className="text-xs mt-1">DESIGNED BY SANGAM FOR NEW CHITWAN</p>
+        <p className="text-xs mt-1">DESIGNED BY SANGAM FOR NEW CHITWAN ;)</p>
       </footer>
     </div>
   );
